@@ -25,7 +25,7 @@ Read:
 - If using simulated metrics, label them as Demo Mode.
 
 ## Hackathon scope rule
-Before adding a feature, ask: does this improve the core camera → state → 3D reaction → Gemini → ElevenLabs demo?
+Before adding a feature, ask: does this improve the core camera → state → 2D game reaction → Gemini → ElevenLabs demo?
 If not, do not build it until the MVP works.
 
 ## Shared-contract changes
