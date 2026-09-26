@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Added
-- Shared three-person repository workflow.
+- Shared two-person repository workflow.
 - EchoShift project context and hackathon MVP.
 - Architecture and module ownership.
 - Shared API/type contracts.
