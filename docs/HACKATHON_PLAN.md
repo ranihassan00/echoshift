@@ -20,13 +20,12 @@ Primary prize targets:
 7. ElevenLabs speaks the line.
 
 ## Parallel work
-- Rani: Presage/Demo -> PlayerState
+- Rani: Presage/Demo -> PlayerState, plus GameContext -> Gemini -> ElevenLabs
 - Ezo: PlayerState -> 2D gameplay reaction + UI/UX
-- Rami: GameContext -> Gemini -> ElevenLabs
 
 ## Build order
 1. Foundation and contracts
-2. Three independent slices
+2. Two-person parallel workstreams
 3. Vertical integration
 4. UI/audio/accessibility polish
 5. Feature freeze, test, deploy, rehearse
