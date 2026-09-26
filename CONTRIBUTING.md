@@ -18,15 +18,15 @@ Initial branches:
 
 ## File ownership
 - Rani: `frontend/src/presage/`, `frontend/src/state/`
-- Teammate 2: `frontend/src/game/`, `frontend/src/ui/`
-- Teammate 3: `backend/`, `frontend/src/api/`
+- Ezo: `frontend/src/game/`, `frontend/src/ui/`
+- Rami: `backend/`, `frontend/src/api/`
 
 Shared config files should be edited by one agreed person at a time.
 
 ## Commits
 Commit small working milestones, for example:
 - `feat: add demo metrics provider`
-- `feat: map player state to scene lighting`
+- `feat: map player state to 2d game reaction`
 - `feat: add structured Gemini dialogue endpoint`
 - `fix: handle ElevenLabs request failure`
 
@@ -46,4 +46,4 @@ Prefer Pull Requests over direct pushes to `main`. After a merge, everyone pulls
 If a conflict touches a shared contract, stop and agree on the intended contract first. Update `docs/api-contracts.md` before resolving it.
 
 ## Secrets
-Never commit Gemini, ElevenLabs, or Presage credentials. Use local environment variables and keep only `.env.example` in the repo.
+Never commit Gemini, ElevenLabs, or Presage credentials. Use local environment variables and do not commit real credential values.
