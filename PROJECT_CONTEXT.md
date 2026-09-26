@@ -86,9 +86,8 @@ Only after the MVP works:
 - Database: none for MVP
 
 ## Team ownership
-- **Rani:** Presage integration, Demo Mode, Player State Engine
+- **Rani:** Presage integration, Demo Mode, Player State Engine, Gemini, ElevenLabs, backend/API integration
 - **Ezo:** 2D game design, gameplay, visual design, UI/UX
-- **Rami:** Gemini, ElevenLabs, backend/API integration
 
 ## Constraints
 - This is a hackathon project: working depth beats feature breadth.
