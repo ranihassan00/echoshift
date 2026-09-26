@@ -1,0 +1,198 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap');
+
+:root {
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+  color: #e8e6d9;
+  background: #10171b;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  --ink: #10171b;
+  --muted: #96a39b;
+  --line: rgba(190, 206, 181, 0.15);
+  --accent: #b9d28c;
+  --mono: 'DM Mono', Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(71, 105, 91, 0.19), transparent 48%),
+    linear-gradient(150deg, #172123, var(--ink) 60%);
+}
+
+button,
+a {
+  color: inherit;
+}
+
+a {
+  text-decoration: none;
+}
+
+.app-shell {
+  width: min(100% - 48px, 1080px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 30px 0 44px;
+}
+
+.hud {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  gap: 34px;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  margin-right: auto;
+}
+
+.brand-mark {
+  display: grid;
+  width: 30px;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgba(185, 210, 140, 0.55);
+  border-radius: 50%;
+  color: var(--accent);
+  font-family: Georgia, serif;
+  font-size: 16px;
+}
+
+.brand-name {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 21px;
+}
+
+.hud-readout {
+  display: grid;
+  gap: 5px;
+}
+
+.hud-readout__label,
+.hud-readout__value,
+.stage-heading,
+.stage-footer {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.hud-readout__label {
+  color: var(--muted);
+}
+
+.hud-readout__value {
+  color: #d9ddcf;
+}
+
+.hud-readout--state .hud-readout__value {
+  color: var(--accent);
+}
+
+.play-area {
+  width: min(100%, 960px);
+  margin: clamp(42px, 9vh, 86px) auto 0;
+}
+
+.stage-heading,
+.stage-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #aeb8aa;
+}
+
+.stage-heading {
+  margin-bottom: 13px;
+}
+
+.stage-heading__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.status-dot {
+  width: 6px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 11px rgba(185, 210, 140, 0.6);
+}
+
+.game-frame {
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid rgba(193, 205, 179, 0.24);
+  background: #10171b;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+}
+
+.game-mount,
+.game-mount canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.stage-footer {
+  min-height: 43px;
+  border-bottom: 1px solid var(--line);
+  color: #75837c;
+  font-size: 9px;
+}
+
+.stage-footer span:first-child {
+  color: var(--accent);
+}
+
+@media (max-width: 600px) {
+  .app-shell {
+    width: min(100% - 32px, 1080px);
+    padding-top: 18px;
+  }
+
+  .hud {
+    min-height: 58px;
+    gap: 14px;
+  }
+
+  .brand-name {
+    font-size: 18px;
+  }
+
+  .hud-readout__label,
+  .hud-readout__value {
+    font-size: 8px;
+  }
+
+  .hud-readout--state {
+    display: none;
+  }
+
+  .play-area {
+    margin-top: 48px;
+  }
+
+  .stage-heading,
+  .stage-footer {
+    font-size: 8px;
+  }
+}
