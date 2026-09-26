@@ -20,7 +20,7 @@
                                      │ PlayerState
                                      ▼
 ┌──────────────────┐       ┌────────────────────┐
-│ React UI / HUD   │◄──────│    3D Game Loop    │
+│  React UI / HUD  │◄──────│    2D Game Loop    │
 └──────────────────┘       └─────────┬──────────┘
                                      │ GameContext + PlayerState
                                      ▼
@@ -61,7 +61,7 @@ echoshift/
 └── ARCHITECTURE.md
 ```
 
-The application folders may be created by the implementation tasks. Do not create unused layers just to match this diagram.
+The application folders may be created by implementation tasks. Do not create unused layers just to match this diagram.
 
 ## Module A — Sensing + Player State
 
@@ -80,22 +80,22 @@ The application folders may be created by the implementation tasks. Do not creat
 
 **May depend on:** Presage SDK/API, shared types
 
-**Must not directly depend on:** Gemini, ElevenLabs, 3D scene internals
+**Must not directly depend on:** Gemini, ElevenLabs, 2D game internals
 
 ---
 
-## Module B — 3D Game + UI/UX
+## Module B — 2D Game + UI/UX
 
-**Owner:** Teammate 2
+**Owner:** Ezo
 
 **Paths:** `frontend/src/game/`, `frontend/src/ui/`
 
 **Responsibility:**
-- 3D scene
+- 2D game design and gameplay
 - Player interactions/puzzles
-- Environment reaction to `PlayerState`
+- Visual/environment reaction to `PlayerState`
 - HUD and onboarding
-- Accessibility/polish
+- Accessibility and polish
 - Demo flow
 
 **Public interface:** accepts `PlayerState`; emits `GameContext`/game events
@@ -108,7 +108,7 @@ The application folders may be created by the implementation tasks. Do not creat
 
 ## Module C — AI + Voice Backend
 
-**Owner:** Teammate 3
+**Owner:** Rami
 
 **Paths:** `backend/`, `frontend/src/api/`
 
@@ -123,18 +123,18 @@ The application folders may be created by the implementation tasks. Do not creat
 
 **May depend on:** Gemini and ElevenLabs SDKs/APIs
 
-**Must not directly depend on:** 3D scene internals or raw Presage implementation
+**Must not directly depend on:** 2D game internals or raw Presage implementation
 
 ---
 
 ## Integration ownership
 
-Integration is a team task after each vertical component works independently.
+Integration is a team task after each component works independently.
 
 Rules:
 - Integrate through documented interfaces.
 - Avoid cross-module imports that bypass contracts.
-- One teammate owns each merge conflict; do not let multiple AI agents independently "fix" the same conflict.
+- One teammate owns each merge conflict; do not let multiple AI agents independently fix the same conflict.
 - If a contract must change, update `docs/api-contracts.md` first.
 
 ## Design decisions
