@@ -5,7 +5,7 @@ Owner: Rani
 Status: In Progress
 Branch: setup/shared-hackathon-context
 
-Goal: establish repository context, architecture, contracts, three-person workflow, and AI instructions.
+Goal: establish repository context, architecture, contracts, two-person workflow, and AI instructions.
 
 ## TASK-002 — Presage + Player State Engine
 Owner: Rani
@@ -45,7 +45,7 @@ Do not modify:
 - Gemini/ElevenLabs backend internals
 
 ## TASK-004 — Gemini + ElevenLabs Backend
-Owner: Rami
+Owner: Rani
 Status: Not Started
 Branch: feature/ai-voice
 
