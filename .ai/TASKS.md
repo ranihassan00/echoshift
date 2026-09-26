@@ -23,24 +23,29 @@ Do not modify:
 - frontend/src/ui/
 - backend/
 
-## TASK-003 — 3D Game + UI/UX
-Owner: Teammate 2
+## TASK-003 — 2D Game + UI/UX
+Owner: Ezo
 Status: Not Started
 Branch: feature/game-ui
 
-Goal: build one polished 3D experience that visibly reacts to PlayerState.
+Goal: build one polished 2D game experience that visibly reacts to PlayerState and is strong enough for a live judge demo.
 
 Allowed:
 - frontend/src/game/
 - frontend/src/ui/
+- game assets owned by this module
 
 Uses:
 - PlayerState
 - GameContext
 - DialogueResponse
 
+Do not modify:
+- Presage/state internals
+- Gemini/ElevenLabs backend internals
+
 ## TASK-004 — Gemini + ElevenLabs Backend
-Owner: Teammate 3
+Owner: Rami
 Status: Not Started
 Branch: feature/ai-voice
 
@@ -56,12 +61,16 @@ Uses:
 - POST /api/dialogue
 - POST /api/voice
 
+Do not modify:
+- 2D game internals
+- Presage/state internals
+
 ## TASK-005 — Vertical slice integration
 Owner: Team
 Status: Blocked until TASK-002, TASK-003, and TASK-004 have working slices
 Branch: integration/vertical-slice
 
 Goal:
-Presage/Demo -> PlayerState -> 3D reaction -> Gemini -> ElevenLabs
+Presage/Demo -> PlayerState -> 2D reaction -> Gemini -> ElevenLabs
 
 Do not begin broad integration until each module can be exercised independently through its public interface.
