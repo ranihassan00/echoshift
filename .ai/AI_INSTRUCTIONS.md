@@ -14,7 +14,7 @@ Read:
 
 ## Development rules
 - Stay within the assigned task.
-- Respect the three-person module ownership in `ARCHITECTURE.md`.
+- Respect the two-person module ownership in `ARCHITECTURE.md`.
 - Do not redesign unrelated modules.
 - Do not silently change public interfaces.
 - Do not rename shared types, routes, environment keys, or events without checking dependents.

@@ -21,15 +21,14 @@ Last updated: 2026-09-26
 - Final deployment and presentation polish
 
 ## Team ownership
-- Rani: Presage + Player State Engine
+- Rani: Presage + Player State Engine + Gemini + ElevenLabs + backend/API
 - Ezo: 2D game design + gameplay + UI/UX
-- Rami: Gemini + ElevenLabs + backend
 
 ## Open decisions
 - Confirm exact Presage integration path from sponsor docs.
 - Confirm final hosting/deployment choice.
 - Ezo to finalize the game's visual theme, interaction loop, and main gameplay mechanic.
-- Rami to finalize Gemini output schema and ElevenLabs voice setup.
+- Rani to finalize Gemini output schema and ElevenLabs voice setup.
 
 ## Current integration assumptions
 - React + TypeScript frontend
@@ -43,7 +42,7 @@ Last updated: 2026-09-26
 
 ## Recent changes
 - Switched project direction from 3D to 2D.
-- Real teammate ownership added: Rani, Ezo, and Rami.
+- Team ownership updated: Rani and Ezo.
 - MVP remains one polished vertical slice.
 
 ## Before starting work
