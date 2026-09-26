@@ -4,12 +4,12 @@
 EchoShift
 
 ## Purpose
-Build a short, polished 3D game that reacts to the player's real-time state.
+Build a short, polished 2D game that reacts to the player's real-time state.
 
 The intended flow is:
 
 ```text
-camera → Presage signals → our Player State Engine → game changes
+camera → Presage signals → our Player State Engine → 2D game changes
                                               ↓
                                       Gemini AI director
                                               ↓
@@ -20,17 +20,17 @@ Presage should be a meaningful part of the core gameplay, not a dashboard add-on
 
 ## Users
 - Hack the Hill judges trying the live demo
-- Players experiencing a short adaptive game session
+- Players experiencing a short adaptive 2D game session
 
 ## Core requirements
-1. A working, understandable 3D experience.
+1. A working, understandable 2D game experience.
 2. Camera/Presage integration that produces game-relevant input.
 3. A deterministic Player State Engine owned by our code.
-4. At least one obvious environmental or gameplay reaction to a player-state change.
+4. At least one obvious gameplay, environment, UI, difficulty, or story reaction to a player-state change.
 5. Gemini integration using structured inputs/outputs.
 6. ElevenLabs voice output tied to the NPC/game response.
 7. A clearly labelled simulation/demo mode for development and backup.
-8. A polished five-minute demo path.
+8. A polished five-minute presentation and fast live demo path.
 
 ## Player-state language
 Do **not** claim the game medically diagnoses stress or emotion.
@@ -50,7 +50,7 @@ The MVP is complete when a player can:
 2. Allow camera access.
 3. Produce metrics through Presage or clearly labelled Demo Mode.
 4. Trigger a Player State Engine transition.
-5. See the 3D game visibly react.
+5. See the 2D game visibly react.
 6. Trigger one Gemini-generated NPC response.
 7. Hear that response through ElevenLabs.
 
@@ -58,25 +58,25 @@ The MVP is complete when a player can:
 Only after the MVP works:
 - Multiple adaptive story branches
 - Smoother state transitions using rolling averages
-- Adaptive puzzle difficulty
+- Adaptive puzzle/difficulty changes
 - More polished environmental/audio effects
 - Two endings based on player choices + state history
-- Accessibility controls and reduced-motion option
+- Accessibility controls and reduced-motion options
 
 ## Explicit non-goals for the hackathon
 - Multiplayer
 - Accounts
-- Inventory/crafting
 - Large open world
-- Complex combat
+- Complex inventory/crafting
+- Complex combat unless it is core to Ezo's design
 - A full analytics dashboard
 - Unnecessary database infrastructure
 - Adding every sponsor integration
 
 ## Planned tech stack
 - Frontend: React + TypeScript
-- 3D: Three.js / React Three Fiber
-- Sensing: Presage SDK/API path supported by sponsor documentation
+- Game: 2D web game layer; exact library/approach chosen by Ezo
+- Sensing: Presage sponsor-supported integration
 - Player-state logic: TypeScript
 - Backend: Node.js + TypeScript + lightweight HTTP framework
 - AI: Gemini API
@@ -84,6 +84,11 @@ Only after the MVP works:
 - Testing: focused unit tests for state logic + smoke tests for integrations
 - Deployment: simple hackathon-friendly hosting; final choice TBD
 - Database: none for MVP
+
+## Team ownership
+- **Rani:** Presage integration, Demo Mode, Player State Engine
+- **Ezo:** 2D game design, gameplay, visual design, UI/UX
+- **Rami:** Gemini, ElevenLabs, backend/API integration
 
 ## Constraints
 - This is a hackathon project: working depth beats feature breadth.
