@@ -108,7 +108,7 @@ The application folders may be created by implementation tasks. Do not create un
 
 ## Module C — AI + Voice Backend
 
-**Owner:** Rami
+**Owner:** Rani
 
 **Paths:** `backend/`, `frontend/src/api/`
 
