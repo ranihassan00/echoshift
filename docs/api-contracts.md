@@ -2,6 +2,32 @@
 
 Anything crossing module boundaries belongs here.
 
+## Canonical TypeScript module
+
+The single source for the shared frontend definitions is
+`frontend/src/shared/contracts.ts`. Both Rani and Ezo import from this module;
+do not redeclare these types in sensing, state, game, UI, or API modules.
+The existing contract shapes are unchanged.
+
+Use relative, type-only imports (no new alias or build configuration required):
+
+```ts
+// From src/presage/*.ts, src/state/*.ts, or src/api/*.ts:
+import type { PlayerMetrics, PlayerState, MetricsProvider } from "../shared/contracts";
+
+// From src/game/scenes/*.ts or src/ui/components/*.tsx:
+import type { PlayerState, GameContext } from "../../shared/contracts";
+```
+
+Adjust only the relative prefix for deeper folders. This module must stay free
+of React, Phaser, provider SDKs, and runtime logic. Rani maintains it as shared
+foundation work; both teammates consume it. Coordinate changes through this
+document before updating dependent modules. The definitions below describe the
+same contract and must stay synchronized with the TypeScript source.
+
+This establishes data types only. The state subscription/game bridge and
+backend dialogue/voice TypeScript payloads remain separate implementation work.
+
 ## Shared frontend types
 
 ### PlayerMetrics

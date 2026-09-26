@@ -7,6 +7,8 @@ Branch: setup/shared-hackathon-context
 
 Goal: establish repository context, architecture, contracts, two-person workflow, and AI instructions.
 
+Shared contract milestone: canonical `frontend/src/shared/contracts.ts` added for PlayerMetrics, PlayerState, GameContext, and MetricsProvider. Rani maintains this shared module; Rani and Ezo consume it using the imports in `docs/api-contracts.md`. Contract shapes are unchanged.
+
 ## TASK-002 — Presage + Player State Engine
 Owner: Rani
 Status: Not Started
