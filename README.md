@@ -1,6 +1,6 @@
 # EchoShift
 
-**EchoShift** is a Hack the Hill project: an adaptive 3D game that reacts to the player's real-time state using camera-based human sensing, a deterministic player-state engine, Gemini, and ElevenLabs.
+**EchoShift** is a Hack the Hill project: an adaptive 2D game that reacts to the player's real-time state using camera-based human sensing, a deterministic player-state engine, Gemini, and ElevenLabs.
 
 The repository is the team's **single source of truth**. We are three people working in parallel, so module ownership and shared contracts matter.
 
@@ -13,7 +13,7 @@ Presage metrics
   ↓
 Player State Engine
   ↓
-3D game reacts
+2D game reacts
   ↓
 Gemini generates bounded NPC/game-director response
   ↓
@@ -25,8 +25,8 @@ The demo should prove one complete vertical slice:
 1. Player grants camera access.
 2. Presage provides usable signals/metrics.
 3. Our code maps those signals to a game state such as `CALM`, `ENGAGED`, or `HIGH_AROUSAL`.
-4. The 3D environment visibly reacts.
-5. Gemini receives only structured game context and returns a bounded response.
+4. The 2D game visibly reacts through its environment, difficulty, story, UI, or NPC behaviour.
+5. Gemini receives structured game context and returns a bounded response.
 6. ElevenLabs gives the NPC a voice.
 
 If Presage is unavailable during development or judging, **Demo Mode** may simulate metrics, but it must be clearly labelled as simulated.
@@ -46,13 +46,11 @@ Depth matters more than breadth. Do not add sponsor integrations unless they imp
 
 ## Team ownership
 
-The exact teammate names can be filled in later.
-
 | Person | Primary ownership | Main paths |
 | --- | --- | --- |
 | **Rani** | Presage integration + Player State Engine | `frontend/src/presage/`, `frontend/src/state/` |
-| **Teammate 2** | 3D gameplay + UI/UX | `frontend/src/game/`, `frontend/src/ui/` |
-| **Teammate 3** | Gemini + ElevenLabs + backend | `backend/`, `frontend/src/api/` |
+| **Ezo** | 2D game design + gameplay + UI/UX | `frontend/src/game/`, `frontend/src/ui/` |
+| **Rami** | Gemini + ElevenLabs + backend | `backend/`, `frontend/src/api/` |
 
 Do not edit another teammate's active module without coordinating first.
 
@@ -86,4 +84,4 @@ Before coding, humans and Codex/other assistants should read:
 
 Never commit API keys.
 
-Use a local `.env` file and keep `.env.example` updated with key names only.
+Use a local `.env` file and keep credential values out of Git.
