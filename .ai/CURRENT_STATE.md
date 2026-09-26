@@ -3,6 +3,7 @@
 Last updated: 2026-09-26
 
 ## Working
+- Shared frontend types are defined in `frontend/src/shared/contracts.ts`; import paths are documented in `docs/api-contracts.md`.
 - GitHub repository exists.
 - Shared project documentation and architecture are established on the setup branch.
 - Team has decided to build a 2D game instead of a 3D game.
