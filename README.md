@@ -15,9 +15,9 @@ Player State Engine
   ↓
 2D game reacts
   ↓
-Gemini generates bounded NPC/game-director response
+Gemini generates bounded NPC/game-director response (still working on)
   ↓
-ElevenLabs speaks the response
+ElevenLabs speaks the response (still working on)
 ```
 
 The demo should prove one complete vertical slice:
