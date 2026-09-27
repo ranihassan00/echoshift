@@ -1,14 +1,14 @@
-﻿import Phaser from 'phaser';
+import Phaser from 'phaser';
 import type { PlayerState } from '../../shared/contracts';
 import City from '../City';
 import { AREAS, hazardFrame, hazardHits, type HazardSpec, type HazardFrame } from '../levels';
-import { color, presentation, PROFILES, TRANSITION_MS } from '../profiles';
+import { color, presentation, biomeColor, normalizeState, TRANSITION_MS } from '../profiles';
 import { CHUNK_WIDTH, emptyRun, HighScore, MOVEMENT, patrolSpeed, SCORE, sectionAt, type Roof, type RunSnapshot, type Section } from '../run';
 
 type Drone = { object: Phaser.GameObjects.Rectangle; left: number; right: number; direction: number; speed: number; tier: number; mode: 'patrol' | 'warn' | 'attack' | 'recover'; until: number; awarded: boolean; defeated: boolean };
 type Fragment = { x: number; y: number; collected: boolean };
-type DeckBody = { object: Phaser.GameObjects.Rectangle; roof: Roof; touched: number; fallen: number };
-type Threat = { spec: HazardSpec; started: number; frame: HazardFrame; spent: boolean };
+type DeckBody = { object: Phaser.GameObjects.Rectangle; roof: Roof; touched: number; fallen: number; exposure: number; elapsed: number };
+type Threat = { spec: HazardSpec; started: number; frame: HazardFrame; spent: boolean; elapsed: number; cycle: number; motion: number; shot: number };
 type Chunk = { decks: DeckBody[]; threats: Threat[]; spec: Section; bodies: Phaser.GameObjects.Rectangle[]; fragments: Fragment[]; drone: Drone; awarded: boolean };
 type Spark = { x: number; y: number; vx: number; vy: number; life: number; tint: number };
 
@@ -45,12 +45,14 @@ export default class EchoScene extends Phaser.Scene {
   private stride = 0;
   private landing = 0;
   private lastAccent = '';
+  private droneClock = 0;
   private dashUntil = 0;
   private dashReady = true;
   private wallKickUntil = 0;
   constructor(private initialState: () => PlayerState = () => 'UNKNOWN', private onRun: (run: RunSnapshot) => void = () => {}, private onAccent: (accent: string) => void = () => {}) { super('EchoScene'); }
 
   setTargetState(state: PlayerState) {
+    state = normalizeState(state);
     if (!this.ready || this.target === state) return;
     this.target = state;
     this.transition?.stop();
@@ -59,7 +61,7 @@ export default class EchoScene extends Phaser.Scene {
   setReducedMotion(value: boolean) { this.userReduced = value; }
 
   create() {
-    this.target = this.initialState();
+    this.target = normalizeState(this.initialState());
     this.painted = presentation(this.target);
     this.city = new City(this);
     this.worldArt = this.add.graphics().setDepth(0);
@@ -119,7 +121,7 @@ export default class EchoScene extends Phaser.Scene {
         const body = object.body as Phaser.Physics.Arcade.StaticBody;
         body.checkCollision.down = false; body.checkCollision.left = false; body.checkCollision.right = false;
       }
-      return { object, roof, touched: -1, fallen: 0 };
+      return { object, roof, touched: -1, fallen: 0, exposure: 0, elapsed: 0 };
     });
     const bodies = decks.map(d => d.object);
     const object = this.add.rectangle(spec.droneLeft + 60, 566, 40, 28, 0xffffff, 0);
@@ -130,7 +132,7 @@ export default class EchoScene extends Phaser.Scene {
       for (let n = 0; n < 3; n++) fragments.push({ x: roof.x + roof.width * (n + 1) / 4, y: roof.y - 48 - Math.sin(n / 2 * Math.PI) * 15, collected: false });
       if (index === 1) fragments.push({ x: roof.x + roof.width / 2, y: roof.y - 120, collected: false });
     });
-    this.chunks.push({ spec, bodies, decks, threats: spec.hazards.map(h => ({ spec: h, started: -1, spent: false, frame: hazardFrame(h, 0, spec.tier) })), fragments, awarded: false, drone: { object, left: spec.droneLeft, right: spec.droneRight, direction: 1, speed: patrolSpeed(spec.tier, PROFILES[this.target].speed), tier: spec.tier, mode: 'patrol', until: 0, awarded: false, defeated: id % 8 !== 0 } });
+    this.chunks.push({ spec, bodies, decks, threats: spec.hazards.map(h => ({ spec: h, started: -1, spent: false, elapsed: 0, cycle: 0, motion: 0, shot: 0, frame: hazardFrame(h, 0, spec.tier) })), fragments, awarded: false, drone: { object, left: spec.droneLeft, right: spec.droneRight, direction: 1, speed: patrolSpeed(spec.tier, 0) * this.painted.enemySpeed, tier: spec.tier, mode: 'patrol', until: 0, awarded: false, defeated: id % 8 !== 0 } });
     if (id % 8 !== 0) (object.body as Phaser.Physics.Arcade.Body).enable = false;
   }
   private removeChunk(chunk: Chunk) {
@@ -163,6 +165,7 @@ export default class EchoScene extends Phaser.Scene {
   update(time: number, delta: number) {
     if (!this.ready) return;
     const dt = Math.min(delta, 40) / 1000;
+    if (!this.run.over) this.droneClock += dt * 1000 * this.painted.fireRate;
     const active = document.activeElement;
     const typing = active instanceof HTMLElement && /BUTTON|INPUT|SELECT|TEXTAREA/.test(active.tagName);
     const justJump = Phaser.Input.Keyboard.JustDown(this.keys.SPACE) || Phaser.Input.Keyboard.JustDown(this.keys.UP);
@@ -243,31 +246,50 @@ export default class EchoScene extends Phaser.Scene {
     for (const d of chunk.decks) {
       const b = d.object.body as Phaser.Physics.Arcade.StaticBody, p = d.roof;
       const standing = b.enable && this.body.blocked.down && Math.abs(this.body.bottom - b.top) < 5 && this.body.right > b.left && this.body.left < b.right;
-      if (standing && d.touched < 0 && (p.kind === 'falling' || p.kind === 'vanish')) d.touched = time;
+      if (standing && d.touched < 0 && (p.kind === 'falling' || p.kind === 'vanish')) { d.touched = time; d.exposure = 0; d.elapsed = 0; }
+      if (d.touched >= 0) {
+        const elapsed = Math.max(0, time - d.touched);
+        d.exposure += Math.max(0, elapsed - d.elapsed) * this.painted.collapseRate;
+        d.elapsed = elapsed;
+      }
       let x = p.x + p.width / 2, y = p.y + (p.height ?? 28) / 2;
       if (p.kind === 'moving') {
         const offset = Math.sin(time / 1400 + chunk.spec.id) * (p.travel ?? 60);
         if (p.vertical) y += offset; else x += offset;
       }
-      if (d.touched >= 0 && time - d.touched > 650) {
+      if (d.touched >= 0 && d.exposure > 650) {
         if (p.kind === 'vanish') b.enable = false;
         if (p.kind === 'falling') { d.fallen += dt * 300; y += d.fallen; if (d.fallen > 260) b.enable = false; }
-        if (time - d.touched > 3500) { d.touched = -1; d.fallen = 0; b.enable = true; y = p.y + (p.height ?? 28) / 2; }
+        if (time - d.touched > 3500) { d.touched = -1; d.fallen = 0; d.exposure = 0; d.elapsed = 0; b.enable = true; y = p.y + (p.height ?? 28) / 2; }
       }
       const dx = x - d.object.x, dy = y - d.object.y;
-      if (standing && b.enable) { this.body.position.x += dx; this.body.position.y += dy; this.player.x += dx; this.player.y += dy; }
+      if (standing && b.enable) { this.body.position.x += dx; this.body.position.y += dy; }
       d.object.setPosition(x, y); b.updateFromGameObject();
     }
     for (const h of chunk.threats) {
       if (h.spent) continue;
       const proximity = Math.abs(this.player.x - h.spec.x);
       if (h.started < 0 && proximity < (h.spec.kind === 'mine' ? 110 : 600)) h.started = time;
-      let elapsed = h.started < 0 ? 0 : time - h.started;
+      const realElapsed = h.started < 0 ? 0 : Math.max(0, time - h.started);
+      const step = Math.max(0, realElapsed - h.elapsed);
+      h.elapsed = realElapsed;
+      const oldCycle = h.cycle;
+      h.cycle += step * (h.spec.kind === 'turret' ? this.painted.fireRate : this.painted.hazardRate);
+      h.motion += step * (h.spec.kind === 'flyer' || h.spec.kind === 'ground' ? this.painted.enemySpeed : this.painted.motionRate);
+      const elapsed = h.cycle;
       if (h.spec.kind === 'mine') {
         h.frame = { ...h.spec, width: elapsed >= 700 ? 90 : 28, height: elapsed >= 700 ? 60 : 16,
           active: h.started >= 0 && elapsed >= 700, warning: h.started >= 0 && elapsed < 700 };
         if (elapsed > 1050) { h.spent = true; continue; }
-      } else h.frame = hazardFrame(h.spec, elapsed, chunk.spec.tier);
+      } else {
+        const cycleLength = Math.max(2400, 3600 - chunk.spec.tier * 150);
+        const phase = elapsed % cycleLength;
+        const newShot = Math.floor(oldCycle / cycleLength) !== Math.floor(elapsed / cycleLength) || oldCycle % cycleLength < 1800;
+        if (phase >= 1800 && phase < 2400) {
+          h.shot = newShot ? Math.max(0, phase - 1800) / this.painted.fireRate * this.painted.projectileSpeed : h.shot + step * this.painted.projectileSpeed;
+        } else h.shot = 0;
+        h.frame = hazardFrame(h.spec, elapsed, chunk.spec.tier, { motionElapsed: h.motion, projectileElapsed: h.shot });
+      }
       if (h.started < 0) h.frame.active = false;
       if (hazardHits(h.frame, this.player.x, this.player.y)) this.damage(time);
     }
@@ -299,7 +321,7 @@ export default class EchoScene extends Phaser.Scene {
         continue;
       } else if (s.kind === 'rotor') {
         const dx = Math.cos(f.angle!) * f.width / 2, dy = Math.sin(f.angle!) * f.width / 2;
-        g.lineStyle(14, tint, .15).lineBetween(f.x - dx, f.y - dy, f.x + dx, f.y + dy);
+        g.lineStyle(14, tint, .15 * this.painted.glow).lineBetween(f.x - dx, f.y - dy, f.x + dx, f.y + dy);
         g.lineStyle(7, tint).lineBetween(f.x - dx, f.y - dy, f.x + dx, f.y + dy);
         g.fillStyle(0xe6edff).fillCircle(f.x, f.y, 6); continue;
       }
@@ -308,7 +330,7 @@ export default class EchoScene extends Phaser.Scene {
         g.fillStyle(tint).fillRect(f.x - f.width / 2 - 4, f.y - f.height / 2 - 5, f.width + 8, 5);
       }
       if (f.active) {
-        g.fillStyle(tint, .12).fillRect(f.x - f.width / 2 - 5, f.y - f.height / 2 - 5, f.width + 10, f.height + 10);
+        g.fillStyle(tint, .12 * this.painted.glow).fillRect(f.x - f.width / 2 - 5, f.y - f.height / 2 - 5, f.width + 10, f.height + 10);
         g.fillStyle(tint, .9).fillRect(f.x - f.width / 2, f.y - f.height / 2, f.width, f.height);
       } else if (s.kind === 'mine' || s.kind === 'crusher' || s.kind === 'debris') {
         g.fillStyle(tint, f.warning ? pulse : .45).fillRect(f.x - f.width / 2, f.y - f.height / 2, f.width, f.height);
@@ -323,17 +345,19 @@ export default class EchoScene extends Phaser.Scene {
     if (d.defeated) return;
     const body = d.object.body as Phaser.Physics.Arcade.Body;
     const dx = this.player.x - d.object.x, dy = this.player.y - d.object.y;
+    const clock = this.droneClock;
+    d.speed = patrolSpeed(d.tier, 0) * this.painted.enemySpeed;
     if (d.mode === 'patrol') {
       if ((d.direction > 0 && d.object.x >= d.right) || (d.direction < 0 && d.object.x <= d.left)) {
-        d.direction *= -1; d.speed = patrolSpeed(d.tier, PROFILES[this.target].speed);
+        d.direction *= -1;
       }
       body.setVelocityX(d.direction * d.speed);
-      if (dx * d.direction > 0 && Math.abs(dx) < 155 && Math.abs(dy) < 50) { d.mode = 'warn'; d.until = time + 650; body.setVelocityX(0); }
+      if (dx * d.direction > 0 && Math.abs(dx) < 155 && Math.abs(dy) < 50) { d.mode = 'warn'; d.until = clock + 650; body.setVelocityX(0); }
     } else {
       body.setVelocityX(0);
-      if (time >= d.until) {
-        if (d.mode === 'warn') { d.mode = 'attack'; d.until = time + 150; }
-        else if (d.mode === 'attack') { d.mode = 'recover'; d.until = time + 1000; }
+      if (clock >= d.until) {
+        if (d.mode === 'warn') { d.mode = 'attack'; d.until = clock + 150; }
+        else if (d.mode === 'attack') { d.mode = 'recover'; d.until = clock + 1000; }
         else { d.mode = 'patrol'; }
       }
     }
@@ -353,7 +377,7 @@ export default class EchoScene extends Phaser.Scene {
     g.fillGradientStyle(0x1d2940, 0x1d2940, 0x080e1c, 0x080e1c, 1).fillRect(x, y, width, roof.kind === 'wall' ? roof.height ?? 220 : 28);
     g.fillStyle(0x35485c).fillRect(x, y, width, 8);
     g.fillStyle(0x0a1423).fillRect(x + 5, y + 12, width - 10, 20);
-    g.lineStyle(9, accent, .05).lineBetween(x, y + 1, x + width, y + 1);
+    g.lineStyle(9 + this.painted.glow * 3, accent, .05 * this.painted.glow).lineBetween(x, y + 1, x + width, y + 1);
     g.lineStyle(2, accent, .8).lineBetween(x, y + 1, x + width, y + 1);
     g.lineStyle(1, 0x68829e, .3).lineBetween(x + 6, y + 34, x + width - 6, y + 34);
     for (let n = 0; n < width; n += 80) {
@@ -371,14 +395,14 @@ export default class EchoScene extends Phaser.Scene {
     const camera = this.cameras.main, right = camera.scrollX + camera.width / camera.zoom;
     for (const chunk of this.chunks) {
       if (chunk.spec.end < camera.scrollX - 100 || chunk.spec.start > right + 100) continue;
-      const areaColor = AREAS[chunk.spec.area].color;
+      const areaColor = biomeColor(AREAS[chunk.spec.area].color, p);
       for (const deck of chunk.decks) {
         if (!(deck.object.body as Phaser.Physics.Arcade.StaticBody).enable) continue;
         const roof = { ...deck.roof, x: deck.object.x - deck.roof.width / 2, y: deck.object.y - (deck.roof.height ?? 28) / 2 };
         this.drawRoof(g, roof, areaColor);
         if (roof.kind === 'falling' || roof.kind === 'vanish') {
           g.lineStyle(2, deck.touched >= 0 ? 0xffbe75 : areaColor).lineBetween(roof.x + 12, roof.y + 4, roof.x + roof.width / 2, roof.y + 14).lineBetween(roof.x + roof.width / 2, roof.y + 14, roof.x + roof.width - 12, roof.y + 4);
-          const remaining = deck.touched < 0 ? 1 : Math.max(0, 1 - (time - deck.touched) / 650);
+          const remaining = deck.touched < 0 ? 1 : Math.max(0, 1 - deck.exposure / 650);
           g.fillStyle(0xffcf88).fillRect(roof.x, roof.y - 5, roof.width * remaining, 3);
         }
         if (roof.kind === 'moving') {

@@ -24,7 +24,7 @@ The demo should prove one complete vertical slice:
 
 1. Player grants camera access.
 2. Presage provides usable signals/metrics.
-3. Our code maps those signals to a game state such as `CALM`, `ENGAGED`, or `HIGH_AROUSAL`.
+3. Our code maps those signals to a game state such as `CALM`, `ENGAGED`, or `HIGHLY_ENGAGED`.
 4. The 2D game visibly reacts through its environment, difficulty, story, UI, or NPC behaviour.
 5. Gemini receives structured game context and returns a bounded response.
 6. ElevenLabs gives the NPC a voice.

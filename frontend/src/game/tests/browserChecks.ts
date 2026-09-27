@@ -1,4 +1,4 @@
-﻿import Phaser from 'phaser';
+import Phaser from 'phaser';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import Game from '../Game';
@@ -6,6 +6,7 @@ import EchoScene from '../scenes/EchoScene';
 import { GAME_CONFIG } from '../config';
 import { presentation, TRANSITION_MS } from '../profiles';
 import { CHUNK_WIDTH, HIGH_SCORE_KEY, HighScore, sectionAt, type RunSnapshot } from '../run';
+import { stateEffectsChecks } from './stateEffectsChecks';
 import { encounterChecks } from './encounterChecks';
 import type { PlayerState } from '../../shared/contracts';
 
@@ -49,13 +50,13 @@ async function runState(state: PlayerState) {
       await sleep(230); assert(!equal(before, inspect.painted), 'Rendered profile interpolates over time');
       const mid = { ...inspect.painted }, score = inspect.run.score, x = inspect.player.x;
       const drone = inspect.chunks[0].drone, speed = drone.speed, enemyX = drone.object.x;
-      scene.setTargetState('HIGH_AROUSAL');
+      scene.setTargetState('HIGHLY_ENGAGED');
       assert(equal(mid, inspect.painted), 'Retargeting preserves current rendered values');
       assert(inspect.run.score === score && inspect.player.x === x, 'Retargeting preserves score and progress');
       assert(drone.speed === speed && drone.object.x === enemyX, 'No immediate drone acceleration or teleport');
       await sleep(TRANSITION_MS + 100);
-      assert(equal(inspect.painted, presentation('HIGH_AROUSAL')), 'Transition reaches the requested profile');
-      await until(() => drone.speed > speed, 10000); assert(true, 'Drone adopts new speed at endpoint');
+      assert(equal(inspect.painted, presentation('HIGHLY_ENGAGED')), 'Transition reaches the requested profile');
+      assert(drone.speed > speed, 'Drone speed ramps with the visual transition without waiting for an endpoint');
       scene.setTargetState('UNKNOWN'); await sleep(TRANSITION_MS + 100);
       assert(equal(inspect.painted, presentation('UNKNOWN')), 'UNKNOWN returns to neutral presentation');
       const jumpHeight = async (hold: number) => {
@@ -95,14 +96,15 @@ let previousScore: string | null = null;
 try {
   previousScore = localStorage.getItem(HIGH_SCORE_KEY); localStorage.removeItem(HIGH_SCORE_KEY);
   storageTest();
-  for (const state of ['UNKNOWN', 'CALM', 'ENGAGED', 'HIGH_AROUSAL'] as PlayerState[]) await runState(state);
+  for (const state of ['UNKNOWN', 'CALM', 'ENGAGED', 'HIGHLY_ENGAGED'] as PlayerState[]) await runState(state);
+  await stateEffectsChecks(assert);
   await encounterChecks(assert);
   const host = document.createElement('div'); document.body.append(host); const root = createRoot(host);
   root.render(createElement(Game)); await until(() => host.querySelectorAll('canvas').length === 1);
-  assert(!!host.textContent?.includes('DEMO MODE · SIMULATED'), 'Demo source is explicitly labelled');
-  root.render(createElement(Game, { targetState: 'ENGAGED' })); await until(() => !!host.textContent?.includes('COMMITTED SIGNAL'));
-  assert(!host.textContent?.includes('SIMULATED'), 'Committed state disables simulated source');
-  root.render(createElement(Game, { targetState: 'HIGH_AROUSAL' })); await until(() => !!host.textContent?.includes('HIGH_AROUSAL'));
+  assert(!!host.textContent?.includes('Visual preview — manual states'), 'Manual preview is explicitly labelled');
+  root.render(createElement(Game, { targetState: 'ENGAGED', signalSource: 'demo' })); await until(() => !!host.textContent?.includes('Demo Mode — simulated metrics'));
+  assert(!host.textContent?.includes('Visual preview — manual states'), 'Committed demo state retains simulated labeling without manual override');
+  root.render(createElement(Game, { targetState: 'HIGHLY_ENGAGED', signalSource: 'demo' })); await until(() => !!host.textContent?.includes('Highly Engaged'));
   assert(host.querySelectorAll('canvas').length === 1, 'Prop updates preserve one game instance');
   host.querySelector<HTMLElement>('[role=application]')!.focus();
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', code: 'KeyD', keyCode: 68, which: 68, bubbles: true }));

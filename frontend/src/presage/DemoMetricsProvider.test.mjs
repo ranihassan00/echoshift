@@ -41,7 +41,7 @@ test('demo sequence drives all normal states through default engine dwell', asyn
   engine.subscribe(s => changes.push(s));
   await provider.start();
   for (now = 1000; now <= 155000; now += 1000) run();
-  assert.deepEqual(changes, ['CALM', 'ENGAGED', 'HIGH_AROUSAL']);
+  assert.deepEqual(changes, ['CALM', 'ENGAGED', 'HIGHLY_ENGAGED']);
   await provider.stop();
 });
 

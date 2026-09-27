@@ -11,7 +11,7 @@ export interface PlayerMetrics {
 export type PlayerState =
   | "CALM"
   | "ENGAGED"
-  | "HIGH_AROUSAL"
+  | "HIGHLY_ENGAGED"
   | "UNKNOWN";
 
 export interface GameContext {

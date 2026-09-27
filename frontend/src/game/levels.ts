@@ -51,27 +51,28 @@ export function encounter(id: number): { decks: Deck[]; hazards: HazardSpec[]; h
 
 export type HazardFrame = { x: number; y: number; width: number; height: number; active: boolean; warning: boolean; angle?: number };
 /** One source of truth for the rendered shape and its collision; no invisible damage. */
-export function hazardFrame(h: HazardSpec, elapsed: number, tier: number): HazardFrame {
+export function hazardFrame(h: HazardSpec, elapsed: number, tier: number, clocks: { motionElapsed?: number; projectileElapsed?: number } = {}): HazardFrame {
   const cycle = Math.max(2400, 3600 - tier * 150), t = ((elapsed + (h.phase ?? 0)) % cycle + cycle) % cycle;
+  const motion = clocks.motionElapsed ?? elapsed;
   const warning = t >= 1100 && t < 1800;
   const active = t >= 1800 && t < 2400;
   const f: HazardFrame = { ...h, active, warning };
   if (h.kind === 'sweepV' || h.kind === 'sweepH') {
-    const offset = Math.sin(elapsed / 850) * (h.travel ?? 60);
+    const offset = Math.sin(motion / 850) * (h.travel ?? 60);
     if (h.kind === 'sweepV') f.y += offset; else f.x += offset;
   }
   if (h.kind === 'flyer' || h.kind === 'ground') {
-    f.x += Math.sin(elapsed / (h.kind === 'ground' ? 400 : 1000)) * (h.travel ?? 80);
-    if (h.kind === 'flyer') f.y += Math.sin(elapsed / 700) * 20;
+    f.x += Math.sin(motion / (h.kind === 'ground' ? 400 : 1000)) * (h.travel ?? 80);
+    if (h.kind === 'flyer') f.y += Math.sin(motion / 700) * 20;
     f.active = true; f.warning = false;
   }
   if (h.kind === 'turret') {
-    f.x += (h.travel ?? -1) * (25 + Math.max(0, t - 1800) * .65);
+    f.x += (h.travel ?? -1) * (25 + (clocks.projectileElapsed ?? Math.max(0, t - 1800)) * .65);
     f.width = 24; f.height = 9;
   }
   if (h.kind === 'crusher') { f.y += active ? Math.min(1, (t - 1800) / 130) * (h.travel ?? 100) : 0; }
   if (h.kind === 'debris') { f.y += active ? Math.min(h.travel ?? 300, (t - 1800) * .8) : 0; }
-  if (h.kind === 'rotor') { f.angle = elapsed / 1000; f.active = true; f.warning = false; }
+  if (h.kind === 'rotor') { f.angle = motion / 1000; f.active = true; f.warning = false; }
   return f;
 }
 export function hazardHits(f: HazardFrame, x: number, y: number, halfW = 12.5, halfH = 22) {

@@ -11,12 +11,12 @@ Shared contract milestone: canonical `frontend/src/shared/contracts.ts` added fo
 
 ## TASK-002 — Presage + Player State Engine
 Owner: Rani
-Status: In Progress — Demo provider and state engine implemented; live Presage blocked
+Status: In Progress — Demo, engine and local live bridge implemented; real camera/account verification pending
 Branch: feature/presage-state
 
 Goal: produce stable PlayerMetrics, support clearly labelled Demo Mode, and map metrics into bounded PlayerState values.
 
-Implemented: deterministic simulated provider, configurable smoothing/hysteresis, separate candidate confirmation and committed dwell, bounded UNKNOWN fallback, and public subscriptions. Tests and integration instructions are in frontend/src/state/README.md. Shared type shapes unchanged. App/game/UI integration remains separate; real Presage needs the verified bridge and credentials documented in frontend/src/presage/README.md.
+Implemented: deterministic simulated provider, configurable smoothing/hysteresis, separate candidate confirmation and committed dwell, bounded UNKNOWN fallback, and public subscriptions. Tests and integration instructions are in frontend/src/state/README.md. Shared type shapes unchanged. Demo App/game wiring is complete under TASK-005; the local live bridge is implemented; configure the key and explicitly verify camera/account access using sensing-service/README.md.
 
 Allowed:
 - frontend/src/presage/
@@ -29,12 +29,12 @@ Do not modify:
 
 ## TASK-003 — 2D Game + UI/UX
 Owner: Ezo
-Status: Implemented — ready for teammate review
+Status: Implemented — state naming, biome treatment and difficulty updated for review
 Branch: feature/game-ui
 
 Goal: build one polished 2D game experience that visibly reacts to PlayerState and is strong enough for a live judge demo.
 
-Implemented eight authored encounters across Rainline Rooftops, Reactor Garden, Neon Transit and Abandoned Lab. District-specific scenery, eleven hazard types, moving/collapsing platforms, dash/wall jumps and capped escalating combinations replace the repeated three-roof layout. Score, local best, state transitions and instant restart remain. See `frontend/src/game/README.md` and the game test fixtures. Shared contracts and Rani-owned modules are unchanged; live wiring remains TASK-005.
+Implemented eight authored encounters across Rainline Rooftops, Reactor Garden, Neon Transit and Abandoned Lab. District-specific scenery, eleven hazard types, moving/collapsing platforms, dash/wall jumps and capped escalating combinations replace the repeated three-roof layout. Score, local best, state transitions and instant restart remain. See `frontend/src/game/README.md` and the game test fixtures. The requested HIGHLY_ENGAGED naming migration is synchronized with shared types and sensing code; 800ms state transitions drive biome-preserving visuals and hazard difficulty. Demo wiring is complete under TASK-005; live Presage remains pending.
 
 Allowed:
 - frontend/src/game/
@@ -73,10 +73,10 @@ Do not modify:
 
 ## TASK-005 — Vertical slice integration
 Owner: Team
-Status: Blocked until TASK-002, TASK-003, and TASK-004 have working slices
+Status: In Progress — demo sensing-to-game slice implemented; live Presage, Gemini and voice remain pending
 Branch: integration/vertical-slice
 
 Goal:
 Presage/Demo -> PlayerState -> 2D reaction -> Gemini -> ElevenLabs
 
-Do not begin broad integration until each module can be exercised independently through its public interface.
+Demo and live local integration are authorized and use existing public interfaces. Live uses a loopback sensing-service with an ignored local key, explicit Start/Stop, lease cleanup and no automatic retries. Real camera/account verification remains pending. App owns provider/engine lifetime; Game receives committed state and explicit source. Timing, lifecycle and browser tests cover the connected slice. AI/voice integration remains separate.

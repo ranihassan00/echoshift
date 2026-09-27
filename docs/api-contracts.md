@@ -7,7 +7,7 @@ Anything crossing module boundaries belongs here.
 The single source for the shared frontend definitions is
 `frontend/src/shared/contracts.ts`. Both Rani and Ezo import from this module;
 do not redeclare these types in sensing, state, game, UI, or API modules.
-The existing contract shapes are unchanged.
+Payload fields are unchanged; the player-state naming migration below applies.
 
 Use relative, type-only imports (no new alias or build configuration required):
 
@@ -25,8 +25,8 @@ foundation work; both teammates consume it. Coordinate changes through this
 document before updating dependent modules. The definitions below describe the
 same contract and must stay synchronized with the TypeScript source.
 
-The state API is implemented below. The game bridge and backend dialogue/voice
-TypeScript payloads remain separate implementation work.
+The state API and demo-to-game bridge are implemented. Live Presage and backend
+dialogue/voice integration remain separate implementation work.
 
 ## Shared frontend types
 
@@ -44,11 +44,18 @@ export interface PlayerMetrics {
 
 ### PlayerState
 
+2026-09-27 naming migration: the elevated gameplay state now uses the serialized
+value `HIGHLY_ENGAGED` and display label **Highly Engaged**. Update producers and
+consumers together (state engine, game profiles, HUD, tests, and future API clients).
+Unknown remains the fallback. At the time of the naming migration, no persisted player-state data or live adapter existed
+to migrate; unrecognized runtime values fall back to Unknown.
+
+
 ```ts
 export type PlayerState =
   | "CALM"
   | "ENGAGED"
-  | "HIGH_AROUSAL"
+  | "HIGHLY_ENGAGED"
   | "UNKNOWN";
 ```
 
@@ -95,11 +102,25 @@ when the last measurement is 3 seconds old. Sustained loss enters UNKNOWN even
 inside the 60-second dwell. Recovery requires fresh candidate confirmation.
 Timestamp units are epoch milliseconds. Gameplay thresholds, input validation,
 smoothing, source switches, and consumer cleanup are documented in
-`frontend/src/state/README.md`. Existing shared type shapes are unchanged.
+`frontend/src/state/README.md`. Payload fields are unchanged; the elevated state uses HIGHLY_ENGAGED.
 
 Demo metrics are always marked `source: "demo"`. Consumers must visibly label Demo
-Mode. No live Presage integration is implemented; see `frontend/src/presage/README.md`
-for the verified SDK boundary and outstanding requirements.
+Mode. The local live adapter is implemented; see `frontend/src/presage/README.md`
+for setup and outstanding real-camera/account verification.
+
+## Game presentation
+
+The four labels are Unknown, Calm, Engaged, Highly Engaged. Game consumers normalize
+unrecognized inputs to UNKNOWN. Committed target changes transition atmosphere and
+difficulty together over 800ms, independent of the sensing engine's 60-second dwell.
+Each biome retains its palette. UNKNOWN uses the original colors and neutral timing.
+
+Game accepts optional signalSource (the canonical PlayerMetrics source union) and
+signalError props in addition to targetState. App supplies the explicitly selected demo or presage source. A target
+by itself never implies Presage. Manual visual preview is independently labeled and
+does not mutate sensing state. connectSensing owns the provider subscriptions and
+250ms watchdog; usePlayerSensing handles React lifecycle and renders startup errors.
+No shared type shape changed for this integration.
 
 ## Backend endpoints
 
@@ -121,7 +142,7 @@ Request:
 {
   "sceneId": "lab-room",
   "storyBeat": "door-locked",
-  "playerState": "HIGH_AROUSAL",
+  "playerState": "HIGHLY_ENGAGED",
   "recentChoice": "inspect-console",
   "allowedEvents": ["LIGHTS_FLICKER", "GIVE_HINT", "NO_EVENT"]
 }
@@ -170,3 +191,28 @@ If sponsor docs use a different Presage credential name, update this file and .e
 ## Rule
 
 Any breaking shared-contract change must be documented here before dependent modules are updated.
+
+## Local Presage transport (TASK-002 / TASK-005)
+
+The separate `sensing-service` process binds only `127.0.0.1:8787`. It owns the
+native SDK and PRESAGE_API_KEY. The browser sends an explicit Origin and a random
+`X-EchoShift-Session` identifier. Only configured local game origins and the exact
+loopback Host are accepted. Shared TypeScript shapes above remain unchanged.
+
+- GET /health: idle/busy/unavailable; never starts a camera.
+- POST /session: explicitly starts one session and returns an NDJSON stream;
+  rejects concurrent sessions with 409. There is no automatic reconnect.
+- POST /heartbeat: renews the owning session's 15-second lease; browser sends every
+  5 seconds. Expiry closes the session even if the socket is still connected.
+- POST /stop: owning token only; releases the SDK. Closing the response stream,
+  startup/runtime errors and server shutdown also release it. A cleanup failure
+  blocks new sessions until the service restarts.
+
+Stream messages: `{type:"status",status:"warming"|"positioning",validationCode?:number}`,
+`{type:"metrics",metrics:PlayerMetrics}`, `{type:"heartbeat"}` or
+`{type:"error",code:string}`. Error codes are fixed public identifiers; raw SDK
+messages and credentials are never sent. Live input requests only metric codes
+BREATHING_RATE (2) and PULSE_RATE (15), using stable samples with bounded confidence,
+fresh epoch-microsecond timestamps converted to milliseconds, and per-field deduplication.
+No engagement measurement is fabricated. The browser labels source selection and
+connection readiness separately; it cannot claim live measurements before receiving them.

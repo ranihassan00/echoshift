@@ -1,0 +1,6 @@
+.sensing-controls { position: absolute; top: 142px; right: 36px; z-index: 12; width: 270px; padding: 12px; border: 1px solid #6987ac50; border-radius: 4px; background: #091322ed; }
+.sensing-controls button { width: 100%; border: 1px solid #80b8c980; border-radius: 3px; background: #183044; padding: 9px 12px; color: #e1f3ff; font-size: 12px; }
+.sensing-controls p { margin: 9px 0 0; color: #b9cbdc; font-size: 11px; line-height: 1.45; }
+.sensing-controls > span { display: block; margin-top: 5px; color: #92a9c2; font-size: 10px; }
+@media (max-width: 680px) { .sensing-controls { top: 138px; right: 18px; width: 215px; padding: 9px; } }
+@media (max-height: 540px) { .sensing-controls { top: 112px; width: 240px; padding: 8px; } }

@@ -12,31 +12,24 @@ committed state. `getState()` reads it. `subscribe(listener)` returns an unsubsc
 function and emits only changes; it does not emit an initial snapshot.
 `tick()` checks for silence and returns the committed state. The engine owns no timers.
 
-Example for a future integration owner (not installed in App.tsx):
+## Connected app lifecycle
 
-```ts
-import { PlayerStateEngine } from './state/index';
-import { DemoMetricsProvider } from './presage/index';
+App.tsx uses usePlayerSensing() to create a fresh DemoMetricsProvider and engine
+for each effect lifetime. connectSensing() subscribes before startup, forwards
+measurements, publishes committed state changes, and runs a 250ms silence watchdog.
+The hook stays separate from the framework-free state/index.ts exports.
 
-const engine = new PlayerStateEngine();
-const provider = new DemoMetricsProvider();
-const unsubscribeMetrics = provider.subscribe(metrics => engine.submit(metrics));
-const unsubscribeState = engine.subscribe(state => console.log(state));
-console.log(provider.label, engine.getState()); // Show Demo Mode in the future UI.
-const watchdog = setInterval(() => engine.tick(), 250);
-await provider.start();
+Cleanup removes both subscriptions and the watchdog immediately, stops the provider,
+and guards late asynchronous startup. StrictMode's discarded setup never starts its
+provider. Provider factories must have stable identity and return fresh instances;
+providers must make stop() idempotent and release resources on startup failure.
+Startup or processing errors produce a visible error and Unknown without crashing
+the game. A reload retries startup. Provider stop failures are logged.
 
-// On integration teardown (and also if startup fails):
-clearInterval(watchdog);
-unsubscribeMetrics();
-unsubscribeState();
-await provider.stop();
-```
-
-Keep the watchdog running during sensor outages. With the example's 250 ms interval,
-loss is observed within one tick of the configured deadline. Ezo owns visual
-interpolation after receiving each discrete committed state. Consumers should not
-throw; subscriber exceptions are logged and isolated from other listeners.
+App passes the committed state and explicit demo source to Game. Manual visual
+preview is an opt-in override in Settings; it does not change engine state or stop
+the pipeline. Leaving preview restores the latest committed state. The game instance,
+score, health and authored biome state persist through prop changes.
 
 ## Timing and input rules
 
@@ -68,7 +61,7 @@ throw; subscriber exceptions are logged and isolated from other listeners.
 
 All defaults and validation are in `config.ts`; override via the constructor.
 
-| Signal | ENGAGED entry / exit | HIGH_AROUSAL entry / exit |
+| Signal | ENGAGED entry / exit | HIGHLY_ENGAGED entry / exit |
 | --- | --- | --- |
 | Heart rate | 85 / 80 | 110 / 100 |
 | Breathing rate | 18 / 16 | 24 / 22 |
@@ -85,7 +78,7 @@ checks and sponsor-recommended valid ranges must be verified before live use.
 With Node 24 (native TypeScript stripping), from `frontend/`:
 
 ```sh
-node --test src/state/PlayerStateEngine.test.mjs src/presage/DemoMetricsProvider.test.mjs
+node --test src/state/*.test.mjs src/presage/*.test.mjs src/game/tests/*.test.mjs
 npm run build
 ```
 
@@ -96,4 +89,8 @@ Verification on 2026-09-26: all 22 Node tests passed and `tsc --noEmit` passed.
 The ordinary `npm run build` hit an environment access-denied error in esbuild's
 config loader. `node node_modules/vite/bin/vite.js build --configLoader native`
 passed with Node 24, without configuration edits. Vite reported a >500 kB bundle
-warning. The modules are intentionally not wired into App.tsx or Ezo's game yet.
+warning. The modules are now wired through App.tsx.
+
+Browser integration fixture: `/src/game/tests/sensing.html` runs the actual App
+under StrictMode with controlled sensing clocks, including dropout, recovery,
+manual override, startup errors and teardown. No production timing is shortened.

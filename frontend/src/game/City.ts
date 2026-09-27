@@ -1,5 +1,5 @@
 ﻿import Phaser from 'phaser';
-import { type Presentation } from './profiles';
+import { biomeColor, color, type Presentation } from './profiles';
 import { AREAS } from './levels';
 
 /** Cached parallax textures, bounded rain strokes and a handful of animated landmarks. */
@@ -10,6 +10,7 @@ export default class City {
   private signs: Phaser.GameObjects.Text[] = [];
   private phase = 0;
   private scenery: Phaser.GameObjects.Graphics;
+  private grading: Phaser.GameObjects.Graphics;
   private palette = { r: 8, g: 21, b: 46 };
   constructor(private scene: Phaser.Scene) {
     this.sky = scene.add.graphics().setScrollFactor(0).setDepth(-100);
@@ -58,6 +59,7 @@ export default class City {
     }
     this.scenery = scene.add.graphics().setScrollFactor(0).setDepth(-25);
     this.atmosphere = scene.add.graphics().setScrollFactor(0).setDepth(8);
+    this.grading = scene.add.graphics().setScrollFactor(0).setDepth(9);
     const labels = ['N E X U S', '夜 / CITY', 'AETHER\nSYSTEMS'];
     labels.forEach((label, i) => this.signs.push(scene.add.text(0, 0, label, {
       fontFamily: 'Consolas, monospace', fontSize: i === 2 ? '22px' : '17px', color: '#b3bef5', align: 'center', lineSpacing: 7,
@@ -68,14 +70,14 @@ export default class City {
     const camera = this.scene.cameras.main, width = camera.width / camera.zoom;
     const dt = Math.min(delta, 40) / 1000;
     this.phase += reduced ? 0 : dt * (.65 + p.activity * .5);
-    const t = this.phase, accent = theme.color;
+    const t = this.phase, accent = biomeColor(theme.color, p);
     const target = Phaser.Display.Color.IntegerToRGB(theme.sky);
     this.palette.r = Phaser.Math.Linear(this.palette.r, target.r, dt * 3);
     this.palette.g = Phaser.Math.Linear(this.palette.g, target.g, dt * 3);
     this.palette.b = Phaser.Math.Linear(this.palette.b, target.b, dt * 3);
-    const skyColor = Phaser.Display.Color.GetColor(this.palette.r, this.palette.g, this.palette.b);
+    const skyColor = biomeColor(Phaser.Display.Color.GetColor(this.palette.r, this.palette.g, this.palette.b), p);
     const sky = this.sky.clear();
-    sky.fillGradientStyle(skyColor, skyColor, theme.floor, 0x080e1b, 1).fillRect(0, -300, width + 20, 1200);
+    sky.fillGradientStyle(skyColor, skyColor, biomeColor(theme.floor, p), biomeColor(0x080e1b, p), 1).fillRect(0, -300, width + 20, 1200);
     for (let i = 0; i < this.layers.length; i++) {
       this.layers[i].setVisible(area === 0 || area === 2).setSize(width + 20, 800).setTint(accent).setAlpha(area === 0 ? 1 : .5);
       this.layers[i].tilePositionX = scroll * (.1 + i * .16);
@@ -104,7 +106,7 @@ export default class City {
         g.fillStyle(0x8aaacd).fillRoundedRect(x, y - 4, 24, 8, 4);
         g.fillStyle(0xffbde9).fillRect(x + 21, y - 1, 5, 2);
       }
-      rain.lineStyle(1, 0xa3cfff, .22);
+      rain.lineStyle(1, biomeColor(0xa3cfff, p), .22 * p.glow);
       for (let i = 0; i < (reduced ? 20 : 145); i++) {
         const x = ((i * 113.7 - t * 130) % width + width) % width;
         const y = (i * 79.1 + t * (380 + i % 5 * 25)) % 760 - 20;
@@ -118,7 +120,7 @@ export default class City {
         g.lineStyle(18, 0x235449).lineBetween(x - 100, 640, x - 100, 350).lineBetween(x - 100, 350, x + 170, 350);
         g.lineStyle(3, accent, .5).lineBetween(x - 100, 640, x - 100, 350).lineBetween(x - 100, 350, x + 170, 350);
         g.fillStyle(0x102e2d).fillRoundedRect(x, 240, 150, 360, 45);
-        for (let n = 6; n > 0; n--) g.fillStyle(accent, .018).fillEllipse(x + 75, 420, 125 + n * 24, 280 + n * 10);
+        for (let n = 6; n > 0; n--) g.fillStyle(accent, .018 * p.glow).fillEllipse(x + 75, 420, 125 + n * 24, 280 + n * 10);
         g.fillStyle(accent, .24).fillRoundedRect(x + 30, 290, 90, 240, 35);
         g.lineStyle(4, accent, .6).strokeEllipse(x + 75, 420, 130, 310);
         for (let j = 0; j < 6; j++) {
@@ -127,7 +129,7 @@ export default class City {
           g.lineStyle(3, 0x428d68).lineBetween(x + 195, 650, vineX, vineY);
           g.fillStyle(j % 2 ? 0x79d77d : 0x2fa58b, .8).fillEllipse(vineX + 12, vineY, 30, 10);
           const steamY = 550 - ((t * 32 + j * 25) % 160);
-          g.fillStyle(0xabf5d9, .045).fillEllipse(x - 70 + Math.sin(t + j) * 14, steamY, 45 + j * 5, 20);
+          g.fillStyle(0xabf5d9, .045 * p.glow).fillEllipse(x - 70 + Math.sin(t + j) * 14, steamY, 45 + j * 5, 20);
           g.fillStyle(accent, .7).fillCircle(x - 100, 370 + ((t * 80 + j * 40) % 240), 3);
         }
       }
@@ -145,7 +147,7 @@ export default class City {
         }
         for (let i = 0; i < 6; i++) { const x = wrap(i * 350); g.lineStyle(8, 0x302843).lineBetween(x, y + 50, x, 740); }
       }
-      for (let i = 0; i < 12; i++) { const x = wrap(i * 170 + t * 350, .06); g.lineStyle(2, accent, .25).lineBetween(x - 75, 190 + i * 8, x, 190 + i * 8); }
+      for (let i = 0; i < 12; i++) { const x = wrap(i * 170 + t * 350, .06); g.lineStyle(2, accent, .25 * p.glow).lineBetween(x - 75, 190 + i * 8, x, 190 + i * 8); }
     } else {
       // Enclosed lab architecture replaces the city skyline entirely.
       for (let i = 0; i < 5; i++) {
@@ -155,7 +157,7 @@ export default class City {
         g.fillStyle(0x090e20).fillRect(x + 20, 270, 175, 250);
         g.lineStyle(2, 0x7f9fa9, .45).lineBetween(x + 20, 270, x + 100, 365).lineBetween(x + 100, 365, x + 70, 430).lineBetween(x + 100, 365, x + 195, 400);
         g.fillStyle(0x83b7c7, .15).fillTriangle(x + 20, 270, x + 65, 315, x + 20, 360);
-        g.fillStyle(accent, reduced ? .5 : .25 + Math.max(0, Math.sin(t * 5 + i)) * .4).fillRect(x + 35, 195, 245, 5);
+        g.fillStyle(accent, Math.min(1, (reduced ? .5 : .25 + Math.max(0, Math.sin(t * 5 + i)) * .4) * p.glow)).fillRect(x + 35, 195, 245, 5);
         g.fillStyle(0x8e304c, .1).fillTriangle(x + 155, 200, x - 80, 650, x + 380, 650);
         g.fillStyle(0x50334a).fillRect(x + 220, 310, 80, 70);
         g.lineStyle(2, accent, .7).strokeTriangle(x + 260, 321, x + 235, 365, x + 285, 365);
@@ -164,7 +166,19 @@ export default class City {
         for (let j = 0; j < 7; j++) g.fillStyle(0x88abb5, .4).fillTriangle(x + j * 26, 645, x + j * 26 + 18, 651, x + j * 26 + 7, 634);
       }
     }
-    rain.fillGradientStyle(theme.floor, theme.floor, 0x050916, 0x050916, 0, 0, .3, .3).fillRect(0, 620, width, 180);
+    // A translucent world-wide treatment preserves the district's own hues and geometry.
+    const grade = this.grading.clear();
+    const tint = color(150 + p.warmth * 150, 195, 220 - p.warmth * 90);
+    grade.fillStyle(tint, p.grade * .28).fillRect(0, -300, width + 20, 1200);
+    grade.fillStyle(accent, p.grade * .2).fillEllipse(width * .55, 200, width * 1.2, 800);
+    // Biome-colored ambient motes scale continuously in opacity, avoiding spawn pops.
+    for (let i = 0; i < 36; i++) {
+      const x = ((i * 157.3 + (reduced ? 0 : t * 18)) % width + width) % width;
+      const y = (i * 71.9 + (reduced ? 0 : t * 27)) % 700;
+      grade.fillStyle(accent, Math.max(0, p.glow - 1) * (reduced ? .08 : .26)).fillCircle(x, y, 1 + i % 3);
+    }
+    this.scenery.setAlpha(Math.min(1, .72 + p.glow * .28));
+    rain.fillGradientStyle(biomeColor(theme.floor, p), biomeColor(theme.floor, p), 0x050916, 0x050916, 0, 0, .3, .3).fillRect(0, 620, width, 180);
   }
-  destroy() { this.signs.forEach(s => s.destroy()); this.layers.forEach(s => s.destroy()); this.sky.destroy(); this.atmosphere.destroy(); this.scenery.destroy(); }
+  destroy() { this.signs.forEach(s => s.destroy()); this.layers.forEach(s => s.destroy()); this.sky.destroy(); this.atmosphere.destroy(); this.scenery.destroy(); this.grading.destroy(); }
 }

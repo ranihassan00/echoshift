@@ -46,7 +46,7 @@ test('a different candidate restarts confirmation', () => {
   sample(1000, 90);
   assert.equal(sample(2000, 120), 'UNKNOWN');
   assert.equal(sample(3000, 120), 'UNKNOWN');
-  assert.equal(sample(4000, 120), 'HIGH_AROUSAL');
+  assert.equal(sample(4000, 120), 'HIGHLY_ENGAGED');
 });
 
 test('hysteresis prevents flicker near the engaged entry threshold', () => {
@@ -64,7 +64,7 @@ test('rolling smoothing rejects a single high spike', () => {
   assert.equal(sample(4000, 70), 'CALM');
   assert.equal(sample(5000, 70), 'CALM');
   feed(6000, 11000, 120);
-  assert.equal(sample(12000, 120), 'HIGH_AROUSAL');
+  assert.equal(sample(12000, 120), 'HIGHLY_ENGAGED');
 });
 
 test('brief dropout retains state; sustained silence overrides dwell', () => {

@@ -38,7 +38,7 @@ Do **not** claim the game medically diagnoses stress or emotion.
 Preferred gameplay states:
 - `CALM`
 - `ENGAGED`
-- `HIGH_AROUSAL`
+- `HIGHLY_ENGAGED`
 - `UNKNOWN`
 
 These are game interpretations of available signals, not medical conclusions.
@@ -100,7 +100,7 @@ Only after the MVP works:
 
 ## Important terminology
 - **PlayerMetrics**: normalized metrics/signals consumed by our game logic.
-- **PlayerState**: our game's interpretation of metrics: `CALM`, `ENGAGED`, `HIGH_AROUSAL`, or `UNKNOWN`.
+- **PlayerState**: our game's interpretation of metrics: `CALM`, `ENGAGED`, `HIGHLY_ENGAGED`, or `UNKNOWN`.
 - **Player State Engine**: deterministic logic that smooths/interprets metrics.
 - **AI Director**: Gemini-backed module that receives bounded context and returns structured game/NPC decisions.
 - **Demo Mode**: clearly labelled simulated metrics for local development or backup.

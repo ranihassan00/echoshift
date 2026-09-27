@@ -36,16 +36,18 @@ vertical/horizontal sweep, electric floor, turret, flying/ground drone, rotor,
 crusher, debris and proximity mine. The original stompable security drone remains
 in the introductory pattern. New drones are contact hazards, not stomp targets.
 
-Timed threats idle, warn for 700ms in amber, activate for 600ms, then reset. Their
-cycle decreases from 3600ms to 2550ms by tier 7. Activation begins when the player
-approaches, rather than cycling unseen for minutes in a streamed chunk. Mines
-trigger within 110px, warn for 700ms, burst once, then become inert. Turrets show
-the shot lane; crushers/debris mark the danger zone. Rotor collision follows the
-rotated bar. Render and collision share the same hazard frame.
+Unknown uses the original neutral timings: timed threats idle, warn for 700ms,
+activate for 600ms, then reset; cycles decrease from 3600ms to 2550ms by tier 7.
+A state profile continuously scales each threat's local clock, preserving its phase.
+Calm lengthens safe intervals and warnings; Highly Engaged shortens them. Turret
+firing cadence has its own rate, while projectile movement is integrated separately.
+Proximity activation, authored geometry and matching render/collision frames remain.
 
-Falling and disappearing platforms show a draining warning stripe for 650ms after
-landing, then fall or disable collision; they restore after 3500ms for retries.
-Moving platforms carry the rider and use updated collision bounds. Ordinary decks
+Falling and disappearing platforms accumulate warning exposure using the current
+state's smoothly changing collapse rate. At a steady state their grace is about
+1444ms Calm, 650ms Unknown, 565ms Engaged, and 260ms Highly Engaged. A triggered
+platform never reverses its warning progress during a state change; recovery remains
+3500ms after first contact. Moving platforms carry the rider and use updated collision bounds. Ordinary decks
 are one-way; solid lab walls allow wall sliding and kicking. Dash does not grant
 invulnerability. Damage grants 1500ms immunity; three hits or a fatal fall ends a run.
 
@@ -54,20 +56,40 @@ sparks/shake. Gameplay hazards and moving platforms remain animated and readable
 
 ## State integration and scoring
 
-`Game({ targetState?: PlayerState })` remains the public entry point. Import the
+`Game({ targetState?, signalSource?, signalError? })` is the public entry point. Import the
 canonical type from `src/shared/contracts.ts`. Omitted target enables clearly
-labelled Demo Mode; a supplied UNKNOWN is the committed neutral fallback.
-State transitions interpolate over 1600ms from current values; duplicates do not
-restart the tween. They preserve the scene, geometry, score and health. The original
-patrol samples its +0/+5/+10/+0 speed offset at endpoints. New hazard timing and
-platform geometry depend on progress, not sensing state. No raw metrics, duplicate
+labelled manual visual preview; a supplied UNKNOWN is the committed neutral fallback.
+App now supplies automatic demo-engine state and signalSource="demo". Supplying a
+target alone never implies live sensing. The HUD keeps simulated-source labeling.
+Settings offers an explicit manual visual-preview toggle; turning it off restores
+the latest committed sensing state without restarting Phaser.
+State transitions interpolate visuals and difficulty together over 800ms from
+current values; duplicate targets do not restart the tween. Invalid runtime targets
+normalize to Unknown. UI labels are Unknown, Calm, Engaged, and Highly Engaged;
+the elevated internal value is HIGHLY_ENGAGED. State changes preserve geometry,
+score, health, and active hazard phase. Every district keeps its authored palette,
+with saturation, brightness, temperature, glow and ambient particles layered on top.
+Unknown applies no color grading and uses neutral difficulty. Reduced motion retains
+static color grading but suppresses animated atmosphere.
+
+| Multiplier | Calm | Unknown | Engaged | Highly Engaged |
+| --- | --- | --- | --- | --- |
+| Enemy movement | 0.55 | 1 | 1.05 | 1.8 |
+| Laser/hazard cycle | 0.6 | 1 | 1.15 | 1.9 |
+| Enemy firing cadence | 0.55 | 1 | 1.15 | 2.2 |
+| Projectile movement | 0.85 | 1 | 1 | 1.18 |
+| Platform warning consumption | 0.45 | 1 | 1.15 | 2.5 |
+| Moving hazard motion | 0.65 | 1 | 1.1 | 1.65 |
+
+These multipliers affect every streamed encounter through one shared profile. Moving
+platform travel and player movement stay authored so the traversal geometry remains
+playable. All timing multipliers ramp on the same tween as the atmosphere. No raw metrics, duplicate
 dwell timers, Presage, Gemini, ElevenLabs or backend internals are used.
 
 Score remains 1 per 10 new forward pixels, 100 per fragment, 75 per introductory
 drone avoided/stomped once, and 150 per cleared encounter. Backtracking/idle time
 cannot farm points. `HighScore` validates `echoshift.high-score.v1` in localStorage,
-handles failures in memory, and survives instant restart and reload. Shared types,
-App, dependencies and shared build configuration are unchanged.
+handles failures in memory, and survives instant restart and reload. The shared state value was renamed with all local consumers. App now owns sensing integration; dependencies and shared build configuration remain unchanged.
 
 ## Verification
 
@@ -75,7 +97,7 @@ App, dependencies and shared build configuration are unchanged.
   runner option avoids this sandbox's config-loader restriction. Phaser still
   produces Vite's large-chunk warning.
 - `/src/game/tests/index.html`: real Phaser/React checks for canonical states,
-  smooth retargeting, patrol endpoint adoption, storage failures, scoring/restart,
+  smooth retargeting, synchronized visual/difficulty ramping, storage failures, scoring/restart,
   cleanup, hazard phase/hitbox rules, dash/recharge, authored gap traversal, wall
   climb, platform carry/collapse/recovery, electric-floor damage and invulnerability.
   Gap traversal isolates geometry from combat; it is not a claim of an automated
@@ -84,5 +106,10 @@ App, dependencies and shared build configuration are unchanged.
 - `/src/game/tests/gallery.html`: test-only buttons to review each encounter's
   art and play it directly. Not a production entry point.
 
+Additional deterministic checks: `node --test src/game/tests/stateProfiles.test.mjs`.
+The browser suite checks state-scaled hazards in all eight encounters. Gallery
+buttons can switch both encounter and engagement state for visual review.
+
 Tests restore prior stored scores. Keep the verification tab active until
-ALL CHECKS PASSED. Live sensing/voice integration remains the integration owner's work.
+ALL CHECKS PASSED. `/src/game/tests/sensing.html` verifies the connected App lifecycle.
+Live Presage and voice integration remain pending.

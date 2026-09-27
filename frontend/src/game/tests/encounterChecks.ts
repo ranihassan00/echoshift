@@ -85,8 +85,8 @@ export async function encounterChecks(assert: (ok: boolean, label: string) => vo
     const cb = car.object.body as Phaser.Physics.Arcade.StaticBody;
     i.body.reset(car.object.x, cb.top - 23); await sleep(120);
     const offset = i.player.x - car.object.x, oldX = car.object.x;
-    await sleep(350);
-    assert(Math.abs(car.object.x - oldX) > 3 && Math.abs(i.player.x - car.object.x - offset) < 6 && i.body.blocked.down, 'Moving train platform carries the standing player without drift');
+    await until(() => Math.abs(car.object.x - oldX) > 8);
+    assert(Math.abs(car.object.x - oldX) > 3 && Math.abs(i.player.x - car.object.x - offset) < 6 && i.body.blocked.down, `Moving train platform carries rider (travel ${Math.abs(car.object.x - oldX).toFixed(1)}, drift ${Math.abs(i.player.x - car.object.x - offset).toFixed(1)}, grounded ${i.body.blocked.down})`);
     const lift = i.chunks.find(c => c.spec.id === 4)!.decks.find(d => d.roof.vertical)!;
     i.body.reset(lift.object.x, (lift.object.body as Phaser.Physics.Arcade.StaticBody).top - 23);
     await sleep(500);

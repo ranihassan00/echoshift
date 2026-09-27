@@ -1,43 +1,41 @@
 # Metrics providers
 
-`DemoMetricsProvider` implements the canonical `MetricsProvider` interface. Its
-`label` explicitly says "Demo Mode — simulated metrics", and every emitted sample
-has `source: "demo"`. Future UI integration must display that label.
+`DemoMetricsProvider` and `PresageMetricsProvider` implement the canonical
+`MetricsProvider` interface. Shared contract shapes are unchanged.
 
-`start()` emits immediately and schedules one timer; repeated starts are no-ops.
-`stop()` is idempotent, cancels the timer, and clears `getLatest()` to null.
-Subscribers persist through stop/restart until they call their unsubscribe function.
-Each delivery and `getLatest()` return copies. Consumer errors are logged and isolated.
-Restart resets the deterministic sequence: simulated CALM-like, ENGAGED-like, and
-HIGH_AROUSAL-like measurements, each lasting 75 seconds, repeating indefinitely.
-Default sample period is 1 second. Options allow injected clock/scheduler and timing.
-State classification remains exclusively in the state engine.
+## Demo (default)
 
-## Presage boundary — live integration not implemented
+The game visibly says **Demo Mode — simulated metrics**. The provider emits every
+second through Calm-like, Engaged-like and Highly Engaged-like phases of 75 seconds.
+It has no camera, credentials or native dependencies. start/stop are idempotent;
+stop clears its latest sample. Subscriptions return cleanup functions.
 
-Official documentation inspected on 2026-09-26:
+## Live Presage
 
-- [Node/Electron integration](https://smartspectra.presagetech.com/docs/nodejs/)
-- [SDK platform overview](https://smartspectra.presagetech.com/)
+See `../../../sensing-service/README.md` for local API-key and startup instructions.
+The native service is separate from the browser bundle. App creates this provider
+only after the player selects Start live sensing, resets classification to Unknown,
+and keeps the existing Phaser instance. Stop returns explicitly to Demo Mode.
+Manual visual preview remains a separately labeled presentation override.
 
-The documented Node package loads a native runtime. Electron's renderer bridge
-requires Electron main/preload processes; it is not a standalone Vite browser SDK.
-The docs also describe native Node camera capture and host-supplied frame input.
-We have not verified a hackathon-specific browser API with the sponsor.
+The adapter opens an abortable NDJSON POST stream, validates source/freshness and
+numeric fields, delivers canonical PlayerMetrics, renews a session lease every five
+seconds, and closes on errors or disposal. There is no automatic retry or demo
+substitution. Status callback options are adapter-specific; shared contracts are
+unchanged. App shows connecting, warmup, positioning, receiving and fixed error text.
+No key belongs in App, Vite variables or the provider.
 
-Keep the existing `MetricsProvider` as the adapter boundary. A future
-`PresageMetricsProvider` must receive verified normalized measurements through an
-agreed bridge and implement start/stop/getLatest/subscribe; it must never silently
-substitute demo data. No fake live provider or speculative SDK method calls are added.
+The Node SDK boundary, timestamp/quality filtering and local transport are now
+implemented. Live account entitlement and camera measurement have NOT been verified:
+only the user should initiate the first credit-consuming session with their key.
+Unknown, 60-second dwell, two-second confirmation, smoothing/hysteresis and sensor-loss
+behavior stay in PlayerStateEngine. Game presentation transitions remain 800 ms.
 
-Before implementation, obtain/confirm:
+Run the provider and state tests with Node 24:
 
-1. Sponsor-approved browser integration route, or approval to build a local native
-   Node camera service and browser transport. The existing browser app stays intact.
-2. Developer API key and supported SDK version/platform, held in the native/server
-   process; never a VITE variable or browser bundle.
-3. Actual decoded payload examples, pulse/breathing units, measurement-quality rules,
-   timestamp conversion to epoch milliseconds, and whether engagement is supplied.
-4. Transport lifecycle/error messages, camera permissions, and measurement freshness.
+```powershell
+node --test src/presage/*.test.mjs src/state/*.test.mjs
+```
 
-Until then use Demo Mode. It and the state engine need no credentials or camera.
+Tests use fake transport/native boundaries and injected clocks. No automated test
+uses a real API key or opens a camera.

@@ -114,9 +114,9 @@ export class PlayerStateEngine {
 
   private classify(values: Measurements): NormalState {
     const c = this.config;
-    const high = this.classified === 'HIGH_AROUSAL';
+    const high = this.classified === 'HIGHLY_ENGAGED';
     if ((values.heartRate ?? -Infinity) >= (high ? c.heartRateHighExit : c.heartRateHighEnter) ||
-        (values.breathingRate ?? -Infinity) >= (high ? c.breathingRateHighExit : c.breathingRateHighEnter)) return 'HIGH_AROUSAL';
+        (values.breathingRate ?? -Infinity) >= (high ? c.breathingRateHighExit : c.breathingRateHighEnter)) return 'HIGHLY_ENGAGED';
     const active = this.classified === 'ENGAGED' || high;
     if ((values.heartRate ?? -Infinity) >= (active ? c.heartRateEngagedExit : c.heartRateEngagedEnter) ||
         (values.breathingRate ?? -Infinity) >= (active ? c.breathingRateEngagedExit : c.breathingRateEngagedEnter) ||
