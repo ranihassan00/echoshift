@@ -196,3 +196,24 @@ a {
     font-size: 8px;
   }
 }
+
+/* Relay game slice */
+.mission { margin: 0 0 24px; }
+.mission > span { color: #9bcbd9; font: 11px var(--mono); letter-spacing: .18em; }
+.mission h1 { font-size: clamp(25px, 4vw, 42px); letter-spacing: -.04em; margin: 10px 0; }
+.mission p { color: #acbbc7; font-size: 14px; line-height: 1.6; }
+.state-panel { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; padding: 14px 16px; background: #1c2b38; border: 1px solid #445866; font: 12px var(--mono); }
+.state-panel strong { color: #f0ca94; font-size: 10px; letter-spacing: .08em; }
+.state-panel small { color: #becbd5; }
+.state-controls { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0; }
+.state-controls button { cursor: pointer; border: 1px solid #506273; background: #162431; padding: 10px 15px; border-radius: 4px; font: 11px var(--mono); }
+.state-controls button[aria-pressed=true] { border-color: #b6e5ed; background: #314a5c; }
+.state-controls button:hover { background: #314a5c; }
+:focus-visible { outline: 3px solid #efd09d; outline-offset: 3px; }
+.controls-legend { display: flex; gap: 12px 24px; flex-wrap: wrap; padding: 17px 0; font: 11px var(--mono); color: #bbcbd6; }
+.controls-legend b { color: #edf2f5; font-weight: 400; }
+.play-area { margin-top: 36px; }
+.game-frame { border-color: #506273; }
+.brand-name { font-family: inherit; font-weight: 700; }
+/* Legacy App preview labels are hidden until the shared shell is integrated. */
+.stage-heading, .stage-footer { display: none; }

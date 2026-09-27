@@ -2,7 +2,7 @@
 
 **EchoShift** is a Hack the Hill project: an adaptive 2D game that reacts to the player's real-time state using camera-based human sensing, a deterministic player-state engine, Gemini, and ElevenLabs.
 
-The repository is the team's **single source of truth**. We are three people working in parallel, so module ownership and shared contracts matter.
+The repository is the team's **single source of truth**. We are two people working in parallel, so module ownership and shared contracts matter.
 
 ## Core demo
 
@@ -48,9 +48,8 @@ Depth matters more than breadth. Do not add sponsor integrations unless they imp
 
 | Person | Primary ownership | Main paths |
 | --- | --- | --- |
-| **Rani** | Presage integration + Player State Engine | `frontend/src/presage/`, `frontend/src/state/` |
+| **Rani** | Presage + Player State Engine + Gemini + ElevenLabs + backend/API integration | `frontend/src/presage/`, `frontend/src/state/`, `frontend/src/api/`, `backend/` |
 | **Ezo** | 2D game design + gameplay + UI/UX | `frontend/src/game/`, `frontend/src/ui/` |
-| **Rami** | Gemini + ElevenLabs + backend | `backend/`, `frontend/src/api/` |
 
 Do not edit another teammate's active module without coordinating first.
 

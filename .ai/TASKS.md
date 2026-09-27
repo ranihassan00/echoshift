@@ -5,7 +5,9 @@ Owner: Rani
 Status: In Progress
 Branch: setup/shared-hackathon-context
 
-Goal: establish repository context, architecture, contracts, three-person workflow, and AI instructions.
+Goal: establish repository context, architecture, contracts, two-person workflow, and AI instructions.
+
+Shared contract milestone: canonical `frontend/src/shared/contracts.ts` added for PlayerMetrics, PlayerState, GameContext, and MetricsProvider. Rani maintains this shared module; Rani and Ezo consume it using the imports in `docs/api-contracts.md`. Contract shapes are unchanged.
 
 ## TASK-002 — Presage + Player State Engine
 Owner: Rani
@@ -25,10 +27,12 @@ Do not modify:
 
 ## TASK-003 — 2D Game + UI/UX
 Owner: Ezo
-Status: Not Started
+Status: Implemented — ready for teammate review
 Branch: feature/game-ui
 
 Goal: build one polished 2D game experience that visibly reacts to PlayerState and is strong enough for a live judge demo.
+
+Implemented Relay: one complete route, four state profiles, simulated controls, smooth interrupted transitions and endpoint-deferred patrol changes. See `frontend/src/game/README.md` and `frontend/src/game/tests/index.html`. Shared type shapes and Rani-owned modules are unchanged; live-state wiring remains TASK-005.
 
 Allowed:
 - frontend/src/game/
@@ -45,7 +49,7 @@ Do not modify:
 - Gemini/ElevenLabs backend internals
 
 ## TASK-004 — Gemini + ElevenLabs Backend
-Owner: Rami
+Owner: Rani
 Status: Not Started
 Branch: feature/ai-voice
 

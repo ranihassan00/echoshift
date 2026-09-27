@@ -1,6 +1,6 @@
 # Contributing
 
-We have three people building in parallel. The goal is to move fast without having three Codex sessions rewrite the same files.
+We have two people building in parallel. The goal is to move fast without having two Codex sessions rewrite the same files.
 
 ## Branches
 Do not develop directly on `main`.
@@ -17,9 +17,8 @@ Initial branches:
 4. Confirm which files your task owns.
 
 ## File ownership
-- Rani: `frontend/src/presage/`, `frontend/src/state/`
+- Rani: `frontend/src/presage/`, `frontend/src/state/`, `frontend/src/api/`, `backend/`
 - Ezo: `frontend/src/game/`, `frontend/src/ui/`
-- Rami: `backend/`, `frontend/src/api/`
 
 Shared config files should be edited by one agreed person at a time.
 
