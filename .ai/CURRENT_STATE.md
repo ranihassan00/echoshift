@@ -3,6 +3,8 @@
 Last updated: 2026-09-27
 
 ## Working
+- TASK-002 demo provider and standalone Player State Engine implemented with deterministic tests; live Presage remains blocked.
+- State API: submit/getState/subscribe/tick; 60-second normal dwell, 2-second confirmation, 3-second freshness and 5-second loss grace. See frontend/src/state/README.md.
 - TASK-003: eight authored encounters across four distinct districts, with escalating hazard combinations, dash/wall-jump traversal, moving/collapsing platforms, health, scoring, local best and instant restart.
 - All four canonical PlayerState values have simulated controls and 1600 ms eased presentation transitions; drone speed changes wait for patrol endpoints.
 - Game integration entry point: `Game({ targetState })`; see `frontend/src/game/README.md` for Rani's handoff and verification fixture.
@@ -13,13 +15,11 @@ Last updated: 2026-09-27
 - Team has decided to build a 2D game instead of a 3D game.
 
 ## In progress
+- TASK-002: live Presage adapter awaits sponsor-approved browser/native bridge, credentials, and payload mapping (frontend/src/presage/README.md).
 - TASK-001: shared project foundation/context.
 
 ## Not started
 - Presage/camera adapter
-- Demo metrics provider
-- Player State Engine
-
 - Gemini AI Director backend
 - ElevenLabs voice generation
 - Full vertical-slice integration

@@ -11,10 +11,12 @@ Shared contract milestone: canonical `frontend/src/shared/contracts.ts` added fo
 
 ## TASK-002 — Presage + Player State Engine
 Owner: Rani
-Status: Not Started
+Status: In Progress — Demo provider and state engine implemented; live Presage blocked
 Branch: feature/presage-state
 
 Goal: produce stable PlayerMetrics, support clearly labelled Demo Mode, and map metrics into bounded PlayerState values.
+
+Implemented: deterministic simulated provider, configurable smoothing/hysteresis, separate candidate confirmation and committed dwell, bounded UNKNOWN fallback, and public subscriptions. Tests and integration instructions are in frontend/src/state/README.md. Shared type shapes unchanged. App/game/UI integration remains separate; real Presage needs the verified bridge and credentials documented in frontend/src/presage/README.md.
 
 Allowed:
 - frontend/src/presage/

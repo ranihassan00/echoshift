@@ -25,8 +25,8 @@ foundation work; both teammates consume it. Coordinate changes through this
 document before updating dependent modules. The definitions below describe the
 same contract and must stay synchronized with the TypeScript source.
 
-This establishes data types only. The state subscription/game bridge and
-backend dialogue/voice TypeScript payloads remain separate implementation work.
+The state API is implemented below. The game bridge and backend dialogue/voice
+TypeScript payloads remain separate implementation work.
 
 ## Shared frontend types
 
@@ -80,6 +80,26 @@ export interface MetricsProvider {
 Implementations:
 - PresageMetricsProvider
 - DemoMetricsProvider
+
+## Player State Engine public behavior
+
+`frontend/src/state/index.ts` exports `PlayerStateEngine` and tuning defaults.
+`submit(PlayerMetrics | null | undefined)` and `tick()` return the committed
+`PlayerState`; `getState()` reads it; `subscribe(listener)` returns an unsubscribe
+function and emits changes only. Initial state is UNKNOWN. Call `tick()` periodically
+(e.g. every 250 ms) so a silent provider cannot leave unsupported state displayed.
+
+Normal transitions require 2 seconds candidate confirmation and 60 seconds since
+last commit. Unusable sensing has a 5-second grace period; silence becomes unusable
+when the last measurement is 3 seconds old. Sustained loss enters UNKNOWN even
+inside the 60-second dwell. Recovery requires fresh candidate confirmation.
+Timestamp units are epoch milliseconds. Gameplay thresholds, input validation,
+smoothing, source switches, and consumer cleanup are documented in
+`frontend/src/state/README.md`. Existing shared type shapes are unchanged.
+
+Demo metrics are always marked `source: "demo"`. Consumers must visibly label Demo
+Mode. No live Presage integration is implemented; see `frontend/src/presage/README.md`
+for the verified SDK boundary and outstanding requirements.
 
 ## Backend endpoints
 
