@@ -1,8 +1,12 @@
 # Current Project State
 
-Last updated: 2026-09-26
+Last updated: 2026-09-27
 
 ## Working
+- TASK-003: eight authored encounters across four distinct districts, with escalating hazard combinations, dash/wall-jump traversal, moving/collapsing platforms, health, scoring, local best and instant restart.
+- All four canonical PlayerState values have simulated controls and 1600 ms eased presentation transitions; drone speed changes wait for patrol endpoints.
+- Game integration entry point: `Game({ targetState })`; see `frontend/src/game/README.md` for Rani's handoff and verification fixture.
+- Real Phaser/React browser checks cover state integration, authored gap geometry, dash/wall movement, hazard timing/damage, platform lifecycles, scoring, storage and cleanup; geometry checks isolate combat. Production build passes with `--configLoader runner` in the sandbox.
 - Shared frontend types are defined in `frontend/src/shared/contracts.ts`; import paths are documented in `docs/api-contracts.md`.
 - GitHub repository exists.
 - Shared project documentation and architecture are established on the setup branch.
@@ -15,7 +19,7 @@ Last updated: 2026-09-26
 - Presage/camera adapter
 - Demo metrics provider
 - Player State Engine
-- 2D game scene and adaptive gameplay
+
 - Gemini AI Director backend
 - ElevenLabs voice generation
 - Full vertical-slice integration
@@ -28,7 +32,7 @@ Last updated: 2026-09-26
 ## Open decisions
 - Confirm exact Presage integration path from sponsor docs.
 - Confirm final hosting/deployment choice.
-- Ezo to finalize the game's visual theme, interaction loop, and main gameplay mechanic.
+- Live-state wiring into the game prop remains integration-owner work; game uses labelled Demo Mode until then.
 - Rani to finalize Gemini output schema and ElevenLabs voice setup.
 
 ## Current integration assumptions

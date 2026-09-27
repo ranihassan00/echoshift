@@ -27,10 +27,12 @@ Do not modify:
 
 ## TASK-003 — 2D Game + UI/UX
 Owner: Ezo
-Status: Not Started
+Status: Implemented — ready for teammate review
 Branch: feature/game-ui
 
 Goal: build one polished 2D game experience that visibly reacts to PlayerState and is strong enough for a live judge demo.
+
+Implemented eight authored encounters across Rainline Rooftops, Reactor Garden, Neon Transit and Abandoned Lab. District-specific scenery, eleven hazard types, moving/collapsing platforms, dash/wall jumps and capped escalating combinations replace the repeated three-roof layout. Score, local best, state transitions and instant restart remain. See `frontend/src/game/README.md` and the game test fixtures. Shared contracts and Rani-owned modules are unchanged; live wiring remains TASK-005.
 
 Allowed:
 - frontend/src/game/
