@@ -5,7 +5,8 @@ import Game from '../Game';
 import EchoScene from '../scenes/EchoScene';
 import { GAME_CONFIG } from '../config';
 import { presentation, TRANSITION_MS } from '../profiles';
-import { CHUNK_WIDTH, HIGH_SCORE_KEY, HighScore, sectionAt, type Roof, type RunSnapshot } from '../run';
+import { CHUNK_WIDTH, HIGH_SCORE_KEY, HighScore, sectionAt, type RunSnapshot } from '../run';
+import { encounterChecks } from './encounterChecks';
 import type { PlayerState } from '../../shared/contracts';
 
 type DroneView = { object: Phaser.GameObjects.Rectangle; left: number; right: number; speed: number; mode: string; defeated: boolean };
@@ -26,23 +27,19 @@ const storageTest = () => {
   for (const invalid of ['NaN', '-2', '{}', '1.2', 'Infinity', '9007199254740992']) { map.set(HIGH_SCORE_KEY, invalid); assert(new HighScore(storage).value === 0, `Malformed score ${invalid} uses zero`); }
   const broken = new HighScore({ getItem() { throw Error('blocked'); }, setItem() { throw Error('quota'); } });
   broken.record(100); assert(broken.value === 100 && !broken.saved, 'Storage failures preserve playable in-memory high score');
-  for (let id = 0; id < 100; id++) {
-    const chunk = sectionAt(id), all = [...chunk.roofs, sectionAt(id + 1).roofs[0]];
-    for (let i = 0; i < all.length - 1; i++) {
-      const gap = all[i + 1].x - all[i].x - all[i].width;
-      if (gap > 110 || gap < 90 || all[i].y - all[i + 1].y > 50) throw Error('Unreachable seam');
-    }
-  }
-  assert(true, '100 generated sections respect capped gap/rise envelope, including seams');
+  assert(new Set(Array.from({ length: 8 }, (_, i) => sectionAt(i).district)).size === 4, 'Four distinct named areas');
+  const kinds = new Set(Array.from({ length: 8 }, (_, i) => sectionAt(i).hazards).flat().map(h => h.kind));
+  assert(kinds.size === 11, 'Eleven authored hazard types across the first circuit');
+  assert(sectionAt(7).hazards.length > sectionAt(0).hazards.length, 'Later encounters combine more hazards');
+
 };
 
-async function runState(state: PlayerState, startingSection = 0) {
+async function runState(state: PlayerState) {
   const scene = new EchoScene(() => state);
   const inspect = scene as unknown as Inspect;
   const game = new Phaser.Game({ ...GAME_CONFIG, width: 1280, height: 720, scale: { mode: Phaser.Scale.NONE }, parent: 'test-game', scene: [scene] });
   try {
     await until(() => !!inspect.keys); await sleep(100);
-    if (startingSection) { inspect.body.reset(startingSection * CHUNK_WIDTH + 140, 566); await sleep(100); }
     assert(inspect.target === state, `${state}: starts immediately with canonical state`);
     if (state === 'UNKNOWN') {
       const before = { ...inspect.painted }; scene.setTargetState('CALM');
@@ -76,27 +73,9 @@ async function runState(state: PlayerState, startingSection = 0) {
       const short = await jumpHeight(80), full = await jumpHeight(450);
       assert(full > short + 25, 'Holding jump provides measurably more height than tapping');
     }
-    let held = false;
-    const pilot = () => {
-      inspect.keys.RIGHT.isDown = true;
-      const x = inspect.player.x;
-      const chunk = inspect.chunks.find(c => x >= c.spec.start && x < c.spec.end);
-      const roofs: Roof[] = inspect.chunks.flatMap(c => c.spec.roofs);
-      const roof = roofs.find(p => x >= p.x && x <= p.x + p.width);
-      const edge = !!roof && x > roof.x + roof.width - 65;
-      const hazard = chunk ? chunk.spec.hazardX - x : Infinity;
-      const drones = inspect.chunks.some(c => !c.drone.defeated && c.drone.object.x - x > -5 && c.drone.object.x - x < 115);
-      const jump = inspect.body.blocked.down && (edge || (hazard > 0 && hazard < 115) || drones);
-      if (jump && !held) { inspect.keys.SPACE.onDown(new KeyboardEvent('keydown', { code: 'Space', key: ' ' })); held = true; }
-      else if (held && inspect.body.velocity.y >= 0) { inspect.keys.SPACE.onUp(new KeyboardEvent('keyup', { code: 'Space', key: ' ' })); held = false; }
-    };
-    scene.events.on(Phaser.Scenes.Events.PRE_UPDATE, pilot);
-    await until(() => inspect.farthest > CHUNK_WIDTH * (startingSection + 3) + 150 || inspect.run.over, 40000);
-    scene.events.off(Phaser.Scenes.Events.PRE_UPDATE, pilot); inspect.keys.RIGHT.isDown = false;
-    assert(!inspect.run.over, `${state}: three continuous sections remain playable (${inspect.run.reason}; x=${Math.round(inspect.player.x)}, y=${Math.round(inspect.player.y)}, health=${inspect.run.health})`);
-    assert(inspect.run.health === 3, `${state}: curated route avoids all damage`);
-    assert(inspect.run.score > inspect.run.distance && inspect.run.fragments > 0, `${state}: distance, fragments and cleared sections award score`);
-    assert(inspect.chunks.length <= 5 && inspect.chunks[0].spec.id > 0, `${state}: old sections recycled with bounded active world`);
+    // Progression geometry is exercised by the dedicated encounter checks below.
+    inspect.body.reset(CHUNK_WIDTH * 4 + 140, 566); await sleep(100);
+    assert(inspect.chunks.length <= 5 && inspect.chunks[0].spec.id > 0, `${state}: streamed world is bounded`);
     const retainedScore = inspect.run.score, retainedX = inspect.player.x;
     scene.setTargetState(state === 'CALM' ? 'ENGAGED' : 'CALM');
     assert(inspect.run.score === retainedScore && inspect.player.x === retainedX, 'Earned score and distance survive a committed state change');
@@ -117,8 +96,7 @@ try {
   previousScore = localStorage.getItem(HIGH_SCORE_KEY); localStorage.removeItem(HIGH_SCORE_KEY);
   storageTest();
   for (const state of ['UNKNOWN', 'CALM', 'ENGAGED', 'HIGH_AROUSAL'] as PlayerState[]) await runState(state);
-  await runState('HIGH_AROUSAL', 8);
-  assert(true, 'Three sections at capped difficulty remain traversable without damage');
+  await encounterChecks(assert);
   const host = document.createElement('div'); document.body.append(host); const root = createRoot(host);
   root.render(createElement(Game)); await until(() => host.querySelectorAll('canvas').length === 1);
   assert(!!host.textContent?.includes('DEMO MODE · SIMULATED'), 'Demo source is explicitly labelled');

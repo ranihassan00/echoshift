@@ -65,3 +65,15 @@ kbd { color: #c7d3e5; display: inline-block; padding: 4px 6px; border: 1px solid
 .save-note { line-height: 1.5; }
 @media (max-width: 680px) { .run-hud { inset: 18px 18px auto; } .wordmark { font-size: 16px; } .score-line { margin-top: 16px; gap: 12px; } .score-line strong { font-size: 25px; } .score-line .best-score { padding-left: 12px; } .run-hud__right small { display: none; } .signal-label { font-size: 7px; } .signal-value { font-size: 10px; } .district-stamp { left: 18px; top: 32%; } .district-stamp strong { font-size: 10px; } .companion { left: 18px; max-width: 280px; bottom: 78px; } .companion p { font-size: 10px; } .bottom-controls { left: 18px; bottom: 16px; gap: 9px; font-size: 7px; } .game-settings { bottom: 42px; right: 18px; } .settings-trigger { font-size: 8px; } .record-marker { left: 18px; top: 155px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+
+.district-stamp small { display: block; margin-top: 12px; color: #a4b6cc; font: 9px var(--mono); letter-spacing: .15em; }
+.area-arrival { position: absolute; top: 23%; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; animation: area-arrival 3.8s both; width: min(600px, 90vw); }
+.area-arrival small { display: block; color: #a2b4cb; font: 10px var(--mono); letter-spacing: .35em; margin-bottom: 12px; }
+.area-arrival strong { font-size: clamp(20px, 3vw, 36px); letter-spacing: .12em; color: #e1e8f5; text-shadow: 0 2px 18px #000; }
+.dash-status { position: absolute; bottom: 125px; left: 36px; color: #9bacc2; font: 9px var(--mono); letter-spacing: .08em; pointer-events: none; }
+.dash-status[data-ready=true] { color: #a0e9ed; }
+@keyframes area-arrival { 0% { opacity: 0; } 15%, 65% { opacity: 1; } 100% { opacity: 0; } }
+@media (max-width: 680px) { .bottom-controls { flex-wrap: wrap; max-width: 65%; gap: 3px; } .dash-status { left: 18px; bottom: 137px; } }
+@media (prefers-reduced-motion: reduce) { .area-arrival { animation: none; display: none; } }
+
+.game-shell[data-reduced=true] .area-arrival { animation: none; display: none; }

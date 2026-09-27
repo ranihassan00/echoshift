@@ -3,10 +3,10 @@
 Last updated: 2026-09-27
 
 ## Working
-- TASK-003: continuous city run with streamed curated sections, variable-height jumps, health, fragments, score, local high score and instant game-over/restart.
+- TASK-003: eight authored encounters across four distinct districts, with escalating hazard combinations, dash/wall-jump traversal, moving/collapsing platforms, health, scoring, local best and instant restart.
 - All four canonical PlayerState values have simulated controls and 1600 ms eased presentation transitions; drone speed changes wait for patrol endpoints.
 - Game integration entry point: `Game({ targetState })`; see `frontend/src/game/README.md` for Rani's handoff and verification fixture.
-- Real Phaser/React browser checks cover all-state traversal, capped difficulty, scoring, storage fallback/reload, smooth retargeting, safe speed changes and cleanup. Production build passes with `--configLoader runner` in the sandbox.
+- Real Phaser/React browser checks cover state integration, authored gap geometry, dash/wall movement, hazard timing/damage, platform lifecycles, scoring, storage and cleanup; geometry checks isolate combat. Production build passes with `--configLoader runner` in the sandbox.
 - Shared frontend types are defined in `frontend/src/shared/contracts.ts`; import paths are documented in `docs/api-contracts.md`.
 - GitHub repository exists.
 - Shared project documentation and architecture are established on the setup branch.

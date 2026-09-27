@@ -1,109 +1,88 @@
-﻿# EchoShift — continuous city run (TASK-003)
+# EchoShift - district progression (TASK-003)
 
 ## Play
 
-From `frontend`: `npm ci`, then `npm run dev`. The run starts immediately.
-A/D or arrow keys move; hold Space/Up for a full jump, tap for a short hop.
-R restarts. After a fatal fall or losing all three health segments, the final-score
-overlay offers an immediate restart without a page reload.
+From `frontend`: `npm ci`, then `npm run dev`. A/D or arrows move; hold Space/Up
+for a full jump. Shift or X dashes horizontally once per airtime; landing or a wall
+kick recharges it. Press jump against a wall to kick upward and away. R restarts.
+The HUD shows dash availability, encounter number, threat tier and contextual hints.
+The run is keyboard-only and silent. No audio assets or external services are required.
 
-The game occupies the viewport. Demo / Settings opens the clearly labelled
-simulated state controls and a reduced-motion/shake option. OS reduced motion is
-also respected. The experience uses keyboard controls and is silent; no audio
-assets, network services or paid asset tools are required.
+## Authored progression
 
-## Continuous course and movement
+The scene streams 2,160px encounters and retains at most five in ordinary traversal.
+Each district occupies two encounters. District changes replace background scenery,
+lighting, palette, particles, signage and props, with a short arrival title.
 
-The same Phaser scene streams curated 2,160-pixel sections, with three rooftop
-platforms per section. All seams have 90–110 pixel gaps and at most 50 pixel rises.
-A full jump at running speed can cross every seam. Several sections stay active;
-sections more than a section behind the player are removed only when safe. A
-backtracking boundary prevents returning into removed space. At most five sections
-are active in normal traversal.
-
-Districts change every two sections: rainline rooftops, transit spine, foundry,
-archive ruins, reactor garden and machine cathedral. World-anchored structural
-landmarks scroll into view without loading or scene replacement. Cached skyline
-textures provide three parallax layers, with rain, distant traffic, holographic
-signage, low haze, wet roof details, localized lightning and bounded sparks.
-
-Movement: 310 px/s cap, 1,800 px/s² acceleration, 2,300 px/s² braking,
-110 ms coyote time, 140 ms jump buffer and variable jump height. Landing particles,
-segmented armor, visor, scarf and limb movement communicate motion and impact.
-Moving platforms, dash, additional enemies and complex combat are intentionally
-outside this focused version.
-
-## Score and difficulty
-
-- 1 point for each 10 new pixels of maximum forward distance (displayed as 1 m).
-- 100 points per energy fragment, collected only once.
-- 75 points per drone avoided or defeated, awarded only once for either action.
-- 150 points for each completed section, awarded once.
-- No idle-time reward, backward-distance reward or repeat-farming reward.
-
-Difficulty increases every two sections to tier 4, then stays capped. Gaps increase
-from 90 to 110 pixels; drone patrol speed ranges from 60 to 102 px/s including
-state variation. Every section keeps its safe route and recovery spaces.
-
-The security drone uses a 650 ms visible warning, 150 ms short-range attack and
-1,000 ms recovery. Jump over it, wait outside its marked range, or land on top.
-Damage has 1,500 ms invulnerability; falls are fatal. Minor camera shake is optional.
-
-## High scores
-
-`HighScore` in `run.ts` validates and loads `echoshift.high-score.v1` from localStorage.
-It records new records as score increases. Invalid/negative/non-integer/unsafe values
-fall back to zero. Unavailable storage and quota errors leave the run operational,
-with an in-memory session record and a saving-unavailable notice at game over.
-Ordinary restart keeps the record; reload retrieves it. Tests restore prior stored
-scores so verification does not replace the user's record.
-
-## State integration for Rani
-
-`Game` accepts `targetState?: PlayerState`, imported from `src/shared/contracts.ts`.
-Use `<Game targetState={committedState} />`. Omitting the prop activates simulated
-controls. Passing `UNKNOWN` selects the neutral committed fallback, not Demo Mode.
-
-`EchoScene.setTargetState(state)` ignores duplicate targets. RGB values and ambient
-activity transition with `Sine.easeInOut` over 1,600 ms, starting from current rendered
-values on interruption. HUD color follows the same interpolated accent. Machinery
-and traffic phase is accumulated continuously rather than recomputed from state,
-so retargeting cannot jump animation phase.
-
-| State | Presentation | Patrol offset |
+| Encounters | District | Mechanics and visual identity |
 | --- | --- | --- |
-| CALM | Deep blue, cyan, gentle activity, circle symbol | +0 px/s |
-| ENGAGED | Cyan/violet, more active machinery, diamond | +5 px/s |
-| HIGH_AROUSAL | Amber/magenta, stronger bounded activity, triangle | +10 px/s |
-| UNKNOWN | Blue-gray, stable fallback, dash and signal-unavailable label | +0 px/s |
+| 1-2 | Rainline Rooftops | Pulse laser introduction, low security patrol, then flying drone and proximity mine. Blue skyline, heavy slanted rain, antennas, neon signs, reflections, flying vehicles and localized lightning. |
+| 3-4 | Reactor Garden | Electrified decks and sweeping beams; disappearing/falling platforms combine with a mine and crusher. Green cores, coolant pipes, energy flow, plants and steam. |
+| 5-6 | Neon Transit | Horizontal and vertical train platforms over pits, telegraphed turret shots, then a wide dash gap and moving laser. Moving express trains, rails, holographic station signage and fast traffic. |
+| 7-8 | Abandoned Lab | Vertical wall-kick route, falling debris, mines and fast ground drones; then collapsing jump chains, rotating barrier, turret and dash gap. Enclosed damaged lab, broken glass, robots, warning screens and red emergency lighting. |
 
-Patrol offsets apply only at endpoints; warning/attack/recovery timing and collision
-geometry are independent of PlayerState. State changes never reset score, health,
-progress or the scene. The game neither consumes raw sensing metrics nor duplicates
-the engine's 60-second dwell timer. No Presage, Gemini, ElevenLabs, API or backend
-internals are imported. Companion text is a bounded local placeholder tied to actual
-introductory obstacles. Future dialogue wiring belongs to Rani.
+Later circuits add known threats to existing patterns. Encounter timing tightens up
+to tier 7, then remains capped. Circuit two adds air patrols; circuit three also
+adds pulse gates. The eight base layouts repeat rather than generating unbounded
+random combinations. Entry and exit decks stay at y=590 with 100px district seams.
+The lab has an elevated recovery ledge which requires a wall kick. Wide 270-280px
+late gaps are designed for jump-plus-dash. Other gaps use ordinary full jumps,
+with timing required for moving platforms.
 
-The existing App shell remains intact. Its legacy preview labels are hidden in the
-owned stylesheet; the old HUD export remains as an empty compatibility slot, while
-Game renders the connected overlay HUD. Shared contracts and config files are unchanged.
+## Hazard and platform rules
+
+`levels.ts` owns authored geometry and eleven new hazard kinds: pulse laser,
+vertical/horizontal sweep, electric floor, turret, flying/ground drone, rotor,
+crusher, debris and proximity mine. The original stompable security drone remains
+in the introductory pattern. New drones are contact hazards, not stomp targets.
+
+Timed threats idle, warn for 700ms in amber, activate for 600ms, then reset. Their
+cycle decreases from 3600ms to 2550ms by tier 7. Activation begins when the player
+approaches, rather than cycling unseen for minutes in a streamed chunk. Mines
+trigger within 110px, warn for 700ms, burst once, then become inert. Turrets show
+the shot lane; crushers/debris mark the danger zone. Rotor collision follows the
+rotated bar. Render and collision share the same hazard frame.
+
+Falling and disappearing platforms show a draining warning stripe for 650ms after
+landing, then fall or disable collision; they restore after 3500ms for retries.
+Moving platforms carry the rider and use updated collision bounds. Ordinary decks
+are one-way; solid lab walls allow wall sliding and kicking. Dash does not grant
+invulnerability. Damage grants 1500ms immunity; three hits or a fatal fall ends a run.
+
+Reduced motion stops background movement, rain animation and lightning, and reduces
+sparks/shake. Gameplay hazards and moving platforms remain animated and readable.
+
+## State integration and scoring
+
+`Game({ targetState?: PlayerState })` remains the public entry point. Import the
+canonical type from `src/shared/contracts.ts`. Omitted target enables clearly
+labelled Demo Mode; a supplied UNKNOWN is the committed neutral fallback.
+State transitions interpolate over 1600ms from current values; duplicates do not
+restart the tween. They preserve the scene, geometry, score and health. The original
+patrol samples its +0/+5/+10/+0 speed offset at endpoints. New hazard timing and
+platform geometry depend on progress, not sensing state. No raw metrics, duplicate
+dwell timers, Presage, Gemini, ElevenLabs or backend internals are used.
+
+Score remains 1 per 10 new forward pixels, 100 per fragment, 75 per introductory
+drone avoided/stomped once, and 150 per cleared encounter. Backtracking/idle time
+cannot farm points. `HighScore` validates `echoshift.high-score.v1` in localStorage,
+handles failures in memory, and survives instant restart and reload. Shared types,
+App, dependencies and shared build configuration are unchanged.
 
 ## Verification
 
-- `npm run build -- --configLoader runner`: TypeScript + production build. The runner
-  option avoids the sandbox's config-bundler filesystem restriction. Vite warns about
-  the Phaser bundle size; no package or shared build configuration was changed.
-- Run `/src/game/tests/index.html` through Vite for real Phaser/React browser checks.
-  The fixture verifies all four states across three sections, capped difficulty,
-  variable jump height, score/no-farming rules, chunk recycling, smooth interrupted
-  state transitions, deferred speed changes, fatal-fall final stats, restart,
-  simulation labelling, the React game-over button and resource cleanup.
-- `/src/game/tests/reload.html` verifies persistence through an actual page reload,
-  then restores the previous high score.
-- The fixture also checks malformed/unavailable storage and 100 section seams.
-- Keep the test tab active until ALL CHECKS PASSED. Test files are not production
-  entry points and require no additional dependencies.
+- `npm run build -- --configLoader runner`: TypeScript and production build. The
+  runner option avoids this sandbox's config-loader restriction. Phaser still
+  produces Vite's large-chunk warning.
+- `/src/game/tests/index.html`: real Phaser/React checks for canonical states,
+  smooth retargeting, patrol endpoint adoption, storage failures, scoring/restart,
+  cleanup, hazard phase/hitbox rules, dash/recharge, authored gap traversal, wall
+  climb, platform carry/collapse/recovery, electric-floor damage and invulnerability.
+  Gap traversal isolates geometry from combat; it is not a claim of an automated
+  no-damage full run through every combined pattern.
+- `/src/game/tests/reload.html`: actual page reload persistence check.
+- `/src/game/tests/gallery.html`: test-only buttons to review each encounter's
+  art and play it directly. Not a production entry point.
 
-Known scope limits: keyboard-only, no live sensing/voice integration, no audio,
-no moving platforms, reused curated geometry, and a large bundled Phaser runtime.
-Future varied section designs must preserve the tested seam and hazard-spacing rules.
+Tests restore prior stored scores. Keep the verification tab active until
+ALL CHECKS PASSED. Live sensing/voice integration remains the integration owner's work.

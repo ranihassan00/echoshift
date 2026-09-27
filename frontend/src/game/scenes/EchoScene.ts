@@ -1,12 +1,15 @@
 ﻿import Phaser from 'phaser';
 import type { PlayerState } from '../../shared/contracts';
 import City from '../City';
+import { AREAS, hazardFrame, hazardHits, type HazardSpec, type HazardFrame } from '../levels';
 import { color, presentation, PROFILES, TRANSITION_MS } from '../profiles';
 import { CHUNK_WIDTH, emptyRun, HighScore, MOVEMENT, patrolSpeed, SCORE, sectionAt, type Roof, type RunSnapshot, type Section } from '../run';
 
 type Drone = { object: Phaser.GameObjects.Rectangle; left: number; right: number; direction: number; speed: number; tier: number; mode: 'patrol' | 'warn' | 'attack' | 'recover'; until: number; awarded: boolean; defeated: boolean };
 type Fragment = { x: number; y: number; collected: boolean };
-type Chunk = { spec: Section; bodies: Phaser.GameObjects.Rectangle[]; fragments: Fragment[]; drone: Drone; awarded: boolean };
+type DeckBody = { object: Phaser.GameObjects.Rectangle; roof: Roof; touched: number; fallen: number };
+type Threat = { spec: HazardSpec; started: number; frame: HazardFrame; spent: boolean };
+type Chunk = { decks: DeckBody[]; threats: Threat[]; spec: Section; bodies: Phaser.GameObjects.Rectangle[]; fragments: Fragment[]; drone: Drone; awarded: boolean };
 type Spark = { x: number; y: number; vx: number; vy: number; life: number; tint: number };
 
 export default class EchoScene extends Phaser.Scene {
@@ -40,9 +43,11 @@ export default class EchoScene extends Phaser.Scene {
   private publishAt = 0;
   private sparks: Spark[] = [];
   private stride = 0;
-  private ambientPhase = 0;
   private landing = 0;
   private lastAccent = '';
+  private dashUntil = 0;
+  private dashReady = true;
+  private wallKickUntil = 0;
   constructor(private initialState: () => PlayerState = () => 'UNKNOWN', private onRun: (run: RunSnapshot) => void = () => {}, private onAccent: (accent: string) => void = () => {}) { super('EchoScene'); }
 
   setTargetState(state: PlayerState) {
@@ -65,7 +70,7 @@ export default class EchoScene extends Phaser.Scene {
     this.body = this.player.body as Phaser.Physics.Arcade.Body;
     this.body.setMaxVelocity(MOVEMENT.speed, 850).setDragX(MOVEMENT.brake);
     this.physics.add.collider(this.player, this.roofs);
-    this.keys = this.input.keyboard!.addKeys('LEFT,RIGHT,UP,A,D,SPACE,R') as Record<string, Phaser.Input.Keyboard.Key>;
+    this.keys = this.input.keyboard!.addKeys('LEFT,RIGHT,UP,A,D,SPACE,R,SHIFT,X') as Record<string, Phaser.Input.Keyboard.Key>;
     this.input.keyboard!.removeCapture(['SPACE', 'UP', 'LEFT', 'RIGHT']);
     const preventScroll = (event: KeyboardEvent) => {
       const focused = document.activeElement;
@@ -96,7 +101,8 @@ export default class EchoScene extends Phaser.Scene {
     this.bestAtStart = this.ledger.value;
     this.run = { ...emptyRun, best: this.ledger.value, saved: this.ledger.saved };
     this.body.enable = true; this.body.reset(140, 566); this.body.setVelocity(0, 0).setAcceleration(0, 0);
-    this.groundedAt = -1000; this.bufferedAt = -1000; this.jumping = false; this.jumpCut = false;
+    this.groundedAt = -1000; this.bufferedAt = -1000; this.jumping = false; this.jumpCut = false; this.facing = 1; this.wasGrounded = false;
+    this.dashUntil = 0; this.dashReady = true; this.wallKickUntil = 0; this.body.setAllowGravity(true);
     this.invulnerableUntil = this.time.now + 700; this.publishAt = 0;
     this.cameras.main.setScroll(0, 0);
     for (let id = 0; id < 3; id++) this.addChunk(id);
@@ -105,19 +111,27 @@ export default class EchoScene extends Phaser.Scene {
 
   private addChunk(id: number) {
     const spec = sectionAt(id);
-    const bodies = spec.roofs.map(p => {
-      const object = this.add.rectangle(p.x + p.width / 2, p.y + 25, p.width, 50, 0xffffff, 0);
-      this.roofs.add(object); return object;
+    const decks = spec.roofs.map(roof => {
+      const height = roof.height ?? 28;
+      const object = this.add.rectangle(roof.x + roof.width / 2, roof.y + height / 2, roof.width, height, 0xffffff, 0);
+      this.roofs.add(object);
+      if (roof.kind !== 'wall') {
+        const body = object.body as Phaser.Physics.Arcade.StaticBody;
+        body.checkCollision.down = false; body.checkCollision.left = false; body.checkCollision.right = false;
+      }
+      return { object, roof, touched: -1, fallen: 0 };
     });
+    const bodies = decks.map(d => d.object);
     const object = this.add.rectangle(spec.droneLeft + 60, 566, 40, 28, 0xffffff, 0);
     this.physics.add.existing(object);
     (object.body as Phaser.Physics.Arcade.Body).setAllowGravity(false).setImmovable(true);
     const fragments: Fragment[] = [];
-    spec.roofs.forEach((roof, index) => {
-      for (let n = 0; n < 3; n++) fragments.push({ x: roof.x + 175 + n * 40, y: roof.y - 48 - Math.sin(n / 2 * Math.PI) * 15, collected: false });
-      if (index === 1) fragments.push({ x: roof.x + 350, y: roof.y - 120, collected: false });
+    spec.roofs.filter(r => r.kind !== 'wall').forEach((roof, index) => {
+      for (let n = 0; n < 3; n++) fragments.push({ x: roof.x + roof.width * (n + 1) / 4, y: roof.y - 48 - Math.sin(n / 2 * Math.PI) * 15, collected: false });
+      if (index === 1) fragments.push({ x: roof.x + roof.width / 2, y: roof.y - 120, collected: false });
     });
-    this.chunks.push({ spec, bodies, fragments, awarded: false, drone: { object, left: spec.droneLeft, right: spec.droneRight, direction: 1, speed: patrolSpeed(spec.tier, PROFILES[this.target].speed), tier: spec.tier, mode: 'patrol', until: 0, awarded: false, defeated: false } });
+    this.chunks.push({ spec, bodies, decks, threats: spec.hazards.map(h => ({ spec: h, started: -1, spent: false, frame: hazardFrame(h, 0, spec.tier) })), fragments, awarded: false, drone: { object, left: spec.droneLeft, right: spec.droneRight, direction: 1, speed: patrolSpeed(spec.tier, PROFILES[this.target].speed), tier: spec.tier, mode: 'patrol', until: 0, awarded: false, defeated: id % 8 !== 0 } });
+    if (id % 8 !== 0) (object.body as Phaser.Physics.Arcade.Body).enable = false;
   }
   private removeChunk(chunk: Chunk) {
     for (const object of chunk.bodies) { this.roofs.remove(object, true, true); }
@@ -155,11 +169,11 @@ export default class EchoScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.keys.R) && !(active instanceof HTMLElement && /INPUT|SELECT|TEXTAREA/.test(active.tagName))) this.restartRun();
     if (!this.run.over) {
       const axis = typing ? 0 : Number(this.keys.RIGHT.isDown || this.keys.D.isDown) - Number(this.keys.LEFT.isDown || this.keys.A.isDown);
-      this.body.setAccelerationX(axis * MOVEMENT.acceleration);
+      if (time >= this.wallKickUntil) this.body.setAccelerationX(axis * MOVEMENT.acceleration);
       if (axis) this.facing = axis;
       const grounded = this.body.blocked.down;
       if (grounded) {
-        this.groundedAt = time; this.jumping = false;
+        this.groundedAt = time; this.jumping = false; if (time >= this.dashUntil) this.dashReady = true;
         if (!this.wasGrounded) { this.landing = 1; this.burst(this.player.x, this.player.y + 20, 0x90c7db, 7); }
       }
       this.wasGrounded = grounded;
@@ -168,8 +182,24 @@ export default class EchoScene extends Phaser.Scene {
         this.body.setVelocityY(-MOVEMENT.jump); this.jumping = true; this.jumpCut = false;
         this.groundedAt = -1000; this.bufferedAt = -1000;
       }
+      const wall = this.body.blocked.left ? 1 : this.body.blocked.right ? -1 : 0;
+      if (!grounded && wall && justJump && !typing) {
+        this.body.setVelocity(wall * 360, -MOVEMENT.jump); this.body.setAccelerationX(0);
+        this.wallKickUntil = time + 180; this.jumping = true; this.jumpCut = false; this.dashReady = true;
+        this.bufferedAt = -1000; this.facing = wall;
+      }
+      if (wall && !grounded && this.body.velocity.y > 120) this.body.setVelocityY(120);
+      const justDash = Phaser.Input.Keyboard.JustDown(this.keys.SHIFT) || Phaser.Input.Keyboard.JustDown(this.keys.X);
+      if (justDash && !typing && this.dashReady) {
+        this.dashReady = false; this.dashUntil = time + MOVEMENT.dashMs;
+        this.burst(this.player.x, this.player.y, 0xa1ecff, 8);
+      }
+      const dashing = time < this.dashUntil;
+      this.body.setDragX(time < this.wallKickUntil || dashing ? 0 : MOVEMENT.brake);
+      this.body.setAllowGravity(!dashing).setMaxVelocity(dashing ? MOVEMENT.dash : Math.max(MOVEMENT.speed, time < this.wallKickUntil ? 360 : 0), 850);
+      if (dashing) this.body.setVelocity(this.facing * MOVEMENT.dash, 0).setAccelerationX(0);
       const holdingJump = this.keys.SPACE.isDown || this.keys.UP.isDown;
-      if (!holdingJump && this.body.velocity.y < -220 && this.jumping && !this.jumpCut) {
+      if (!dashing && !holdingJump && this.body.velocity.y < -220 && this.jumping && !this.jumpCut) {
         this.body.setVelocityY(this.body.velocity.y * .52); this.jumpCut = true;
       }
       if (this.player.x < this.leftEdge + 16) { this.body.x = this.leftEdge + 3; this.body.setVelocityX(Math.max(0, this.body.velocity.x)); }
@@ -182,8 +212,7 @@ export default class EchoScene extends Phaser.Scene {
       for (const chunk of this.chunks) {
         if (!chunk.awarded && this.farthest > chunk.spec.end) { chunk.awarded = true; this.bonus += SCORE.section; }
         this.updateDrone(chunk.drone, time);
-        const hazard = chunk.spec.hazardX;
-        if (Math.abs(this.player.x - hazard) < 35 && this.player.y + 22 > 570 && this.player.y - 22 < 590) this.damage(time);
+        this.updateEncounter(chunk, time, dt);
         for (const f of chunk.fragments) if (!f.collected && Math.abs(f.x - this.player.x) < 29 && Math.abs(f.y - this.player.y) < 34) {
           f.collected = true; this.run.fragments++; this.bonus += SCORE.fragment; this.burst(f.x, f.y, 0x7df6dd, 7);
         }
@@ -192,15 +221,15 @@ export default class EchoScene extends Phaser.Scene {
       this.run.score = Math.floor(Math.max(0, this.farthest - 140) / SCORE.pixelsPerPoint) + this.bonus;
       this.ledger.record(this.run.score); this.run.best = this.ledger.value; this.run.saved = this.ledger.saved;
       this.run.newBest = this.run.score > this.bestAtStart;
-      this.run.district = sectionAt(currentId).district;
+      const section = sectionAt(currentId);
+      this.run.district = section.district; this.run.stage = currentId + 1; this.run.hint = section.hint; this.run.dashReady = this.dashReady;
       if (this.player.y > 830) this.finish('Lost below the skyline');
     }
     const camera = this.cameras.main, visibleWidth = camera.width / camera.zoom;
     const aim = Math.max(this.leftEdge, this.player.x - visibleWidth * .3 + this.body.velocity.x * .18);
     camera.scrollX = Phaser.Math.Linear(camera.scrollX, aim, 1 - Math.exp(-dt * 5));
-    camera.scrollY = Phaser.Math.Linear(camera.scrollY, this.player.y < 380 ? -18 : 0, 1 - Math.exp(-dt * 3));
+    camera.scrollY = Phaser.Math.Linear(camera.scrollY, Math.min(0, this.player.y - 360), 1 - Math.exp(-dt * 3));
     this.stride += Math.abs(this.body.velocity.x) * dt * .045;
-    if (!this.reduced && !this.userReduced) this.ambientPhase += dt * (.2 + this.painted.activity * .4);
     this.landing = Math.max(0, this.landing - dt * 7);
     this.city.update(delta, camera.scrollX, this.painted, this.reduced || this.userReduced, Math.floor(this.farthest / (CHUNK_WIDTH * 2)));
     this.drawWorld(time, dt);
@@ -208,6 +237,86 @@ export default class EchoScene extends Phaser.Scene {
     const accent = `rgb(${Math.round(p.ar)}, ${Math.round(p.ag)}, ${Math.round(p.ab)})`;
     if (accent !== this.lastAccent) { this.lastAccent = accent; this.onAccent(accent); }
     if (time >= this.publishAt) { this.publishAt = time + 100; this.publish(); }
+  }
+
+  private updateEncounter(chunk: Chunk, time: number, dt: number) {
+    for (const d of chunk.decks) {
+      const b = d.object.body as Phaser.Physics.Arcade.StaticBody, p = d.roof;
+      const standing = b.enable && this.body.blocked.down && Math.abs(this.body.bottom - b.top) < 5 && this.body.right > b.left && this.body.left < b.right;
+      if (standing && d.touched < 0 && (p.kind === 'falling' || p.kind === 'vanish')) d.touched = time;
+      let x = p.x + p.width / 2, y = p.y + (p.height ?? 28) / 2;
+      if (p.kind === 'moving') {
+        const offset = Math.sin(time / 1400 + chunk.spec.id) * (p.travel ?? 60);
+        if (p.vertical) y += offset; else x += offset;
+      }
+      if (d.touched >= 0 && time - d.touched > 650) {
+        if (p.kind === 'vanish') b.enable = false;
+        if (p.kind === 'falling') { d.fallen += dt * 300; y += d.fallen; if (d.fallen > 260) b.enable = false; }
+        if (time - d.touched > 3500) { d.touched = -1; d.fallen = 0; b.enable = true; y = p.y + (p.height ?? 28) / 2; }
+      }
+      const dx = x - d.object.x, dy = y - d.object.y;
+      if (standing && b.enable) { this.body.position.x += dx; this.body.position.y += dy; this.player.x += dx; this.player.y += dy; }
+      d.object.setPosition(x, y); b.updateFromGameObject();
+    }
+    for (const h of chunk.threats) {
+      if (h.spent) continue;
+      const proximity = Math.abs(this.player.x - h.spec.x);
+      if (h.started < 0 && proximity < (h.spec.kind === 'mine' ? 110 : 600)) h.started = time;
+      let elapsed = h.started < 0 ? 0 : time - h.started;
+      if (h.spec.kind === 'mine') {
+        h.frame = { ...h.spec, width: elapsed >= 700 ? 90 : 28, height: elapsed >= 700 ? 60 : 16,
+          active: h.started >= 0 && elapsed >= 700, warning: h.started >= 0 && elapsed < 700 };
+        if (elapsed > 1050) { h.spent = true; continue; }
+      } else h.frame = hazardFrame(h.spec, elapsed, chunk.spec.tier);
+      if (h.started < 0) h.frame.active = false;
+      if (hazardHits(h.frame, this.player.x, this.player.y)) this.damage(time);
+    }
+  }
+
+  private drawThreats(g: Phaser.GameObjects.Graphics, chunk: Chunk, time: number) {
+    for (const h of chunk.threats) {
+      if (h.spent) continue;
+      const f = h.frame, s = h.spec, tint = f.active ? 0xff668b : f.warning ? 0xffcf79 : 0x7b9dab;
+      const pulse = this.reduced || this.userReduced ? .8 : .6 + .3 * Math.sin(time / 90);
+      if (s.kind === 'turret') {
+        g.fillStyle(0x384256).fillRect(s.x - 17, s.y - 17, 34, 34);
+        g.lineStyle(6, tint).lineBetween(s.x, s.y, s.x - 26, s.y);
+        if (f.warning) g.lineStyle(1, tint, .65).lineBetween(s.x, s.y, s.x - 410, s.y);
+      } else if (s.kind === 'debris') {
+        g.lineStyle(1, 0xffcf79, f.warning ? .8 : .16).strokeRect(s.x - 24, s.y, 48, (s.travel ?? 300) + 34);
+        if (f.warning) g.fillStyle(0xffcf79, pulse).fillTriangle(s.x - 9, s.y + (s.travel ?? 300), s.x + 9, s.y + (s.travel ?? 300), s.x, s.y + (s.travel ?? 300) - 16);
+      } else if (s.kind === 'crusher') {
+        g.lineStyle(7, 0x50616e).lineBetween(s.x, s.y - 150, s.x, f.y);
+        g.lineStyle(1, 0xffcf79, f.warning ? .85 : .2).strokeRect(s.x - 35, s.y + 45, 70, s.travel ?? 100);
+      } else if (s.kind === 'electric') {
+        g.fillStyle(0x243b36).fillRect(s.x - s.width / 2, s.y - 6, s.width, 12);
+        for (let i = 0; i < s.width; i += 14) g.lineStyle(2, tint, f.active ? 1 : .4).lineBetween(s.x - s.width / 2 + i, s.y + 4, s.x - s.width / 2 + i + 7, s.y - (f.active ? 14 : 4));
+      } else if (s.kind === 'flyer' || s.kind === 'ground') {
+        g.fillStyle(0x263248).fillRoundedRect(f.x - 22, f.y - 14, 44, 28, 5);
+        g.fillStyle(0xff789c).fillRect(f.x - 13, f.y - 5, 26, 4);
+        if (s.kind === 'flyer') g.lineStyle(3, 0x8fd4f0).lineBetween(f.x - 32, f.y - 16, f.x + 32, f.y - 16);
+        else { g.fillStyle(0x8898b1).fillCircle(f.x - 14, f.y + 14, 7).fillCircle(f.x + 14, f.y + 14, 7); }
+        continue;
+      } else if (s.kind === 'rotor') {
+        const dx = Math.cos(f.angle!) * f.width / 2, dy = Math.sin(f.angle!) * f.width / 2;
+        g.lineStyle(14, tint, .15).lineBetween(f.x - dx, f.y - dy, f.x + dx, f.y + dy);
+        g.lineStyle(7, tint).lineBetween(f.x - dx, f.y - dy, f.x + dx, f.y + dy);
+        g.fillStyle(0xe6edff).fillCircle(f.x, f.y, 6); continue;
+      }
+      if (s.kind === 'pulse' || s.kind === 'sweepV' || s.kind === 'sweepH') {
+        g.lineStyle(1, tint, f.warning ? pulse : .25).strokeRect(f.x - f.width / 2, f.y - f.height / 2, f.width, f.height);
+        g.fillStyle(tint).fillRect(f.x - f.width / 2 - 4, f.y - f.height / 2 - 5, f.width + 8, 5);
+      }
+      if (f.active) {
+        g.fillStyle(tint, .12).fillRect(f.x - f.width / 2 - 5, f.y - f.height / 2 - 5, f.width + 10, f.height + 10);
+        g.fillStyle(tint, .9).fillRect(f.x - f.width / 2, f.y - f.height / 2, f.width, f.height);
+      } else if (s.kind === 'mine' || s.kind === 'crusher' || s.kind === 'debris') {
+        g.fillStyle(tint, f.warning ? pulse : .45).fillRect(f.x - f.width / 2, f.y - f.height / 2, f.width, f.height);
+      }
+      if (f.warning) {
+        g.fillStyle(0xffcf79).fillTriangle(s.x, s.y - 36, s.x - 7, s.y - 24, s.x + 7, s.y - 24);
+      }
+    }
   }
 
   private updateDrone(d: Drone, time: number) {
@@ -241,7 +350,7 @@ export default class EchoScene extends Phaser.Scene {
 
   private drawRoof(g: Phaser.GameObjects.Graphics, roof: Roof, accent: number) {
     const { x, y, width } = roof;
-    g.fillGradientStyle(0x1d2940, 0x1d2940, 0x080e1c, 0x080e1c, 1).fillRect(x, y, width, 250);
+    g.fillGradientStyle(0x1d2940, 0x1d2940, 0x080e1c, 0x080e1c, 1).fillRect(x, y, width, roof.kind === 'wall' ? roof.height ?? 220 : 28);
     g.fillStyle(0x35485c).fillRect(x, y, width, 8);
     g.fillStyle(0x0a1423).fillRect(x + 5, y + 12, width - 10, 20);
     g.lineStyle(9, accent, .05).lineBetween(x, y + 1, x + width, y + 1);
@@ -249,14 +358,11 @@ export default class EchoScene extends Phaser.Scene {
     g.lineStyle(1, 0x68829e, .3).lineBetween(x + 6, y + 34, x + width - 6, y + 34);
     for (let n = 0; n < width; n += 80) {
       g.fillStyle(0x314058).fillRect(x + n + 12, y + 18, 25, 3);
-      g.fillStyle(accent, .1).fillRect(x + n + 20, y + 65, 4, 95);
-      g.lineStyle(1, 0x475975, .2).strokeRect(x + n + 8, y + 50, 55, 170);
+      if (roof.kind === 'wall') g.fillStyle(accent, .5).fillRect(x + 5, y + 10, 3, (roof.height ?? 220) - 20);
+
     }
-    // Wet reflections and rooftop hardware are decorative, never colliders.
-    g.fillStyle(accent, .08).fillEllipse(x + 130, y + 6, 85, 4);
-    g.fillStyle(0x24334a).fillRect(x + width - 95, y - 24, 50, 24);
-    g.lineStyle(1, 0x6a7e98, .5).strokeRect(x + width - 95, y - 24, 50, 24);
-    for (let n = 0; n < 4; n++) g.fillStyle(0x08121f).fillRect(x + width - 87, y - 18 + n * 4, 34, 2);
+    g.fillStyle(accent, .13).fillEllipse(x + width / 2, y + 6, Math.min(85, width - 10), 4);
+
   }
 
   private drawWorld(time: number, dt: number) {
@@ -265,33 +371,27 @@ export default class EchoScene extends Phaser.Scene {
     const camera = this.cameras.main, right = camera.scrollX + camera.width / camera.zoom;
     for (const chunk of this.chunks) {
       if (chunk.spec.end < camera.scrollX - 100 || chunk.spec.start > right + 100) continue;
-      for (const roof of chunk.spec.roofs) this.drawRoof(g, roof, accent);
-      // District landmarks are anchored in the continuous world, scrolling in naturally.
-      const landmarkX = chunk.spec.start + 1100;
-      const district = Math.floor(chunk.spec.id / 2) % 6;
-      g.lineStyle(2, secondary, .22);
-      if (district === 0 || district === 1) {
-        g.lineBetween(landmarkX - 160, 390, landmarkX + 340, 390);
-        g.lineBetween(landmarkX - 160, 400, landmarkX + 340, 400);
-        for (let n = 0; n < 5; n++) g.lineBetween(landmarkX - 140 + n * 110, 400, landmarkX - 100 + n * 110, 520);
-      } else if (district === 2 || district === 4) {
-        g.strokeCircle(landmarkX, 440, 66).strokeCircle(landmarkX, 440, 54);
-        const rotation = this.ambientPhase;
-        for (let n = 0; n < 6; n++) {
-          const angle = n * Math.PI / 3 + rotation;
-          g.lineBetween(landmarkX + Math.cos(angle) * 15, 440 + Math.sin(angle) * 15, landmarkX + Math.cos(angle) * 50, 440 + Math.sin(angle) * 50);
+      const areaColor = AREAS[chunk.spec.area].color;
+      for (const deck of chunk.decks) {
+        if (!(deck.object.body as Phaser.Physics.Arcade.StaticBody).enable) continue;
+        const roof = { ...deck.roof, x: deck.object.x - deck.roof.width / 2, y: deck.object.y - (deck.roof.height ?? 28) / 2 };
+        this.drawRoof(g, roof, areaColor);
+        if (roof.kind === 'falling' || roof.kind === 'vanish') {
+          g.lineStyle(2, deck.touched >= 0 ? 0xffbe75 : areaColor).lineBetween(roof.x + 12, roof.y + 4, roof.x + roof.width / 2, roof.y + 14).lineBetween(roof.x + roof.width / 2, roof.y + 14, roof.x + roof.width - 12, roof.y + 4);
+          const remaining = deck.touched < 0 ? 1 : Math.max(0, 1 - (time - deck.touched) / 650);
+          g.fillStyle(0xffcf88).fillRect(roof.x, roof.y - 5, roof.width * remaining, 3);
         }
-      } else {
-        g.lineBetween(landmarkX - 70, 540, landmarkX - 70, 340).lineBetween(landmarkX + 70, 540, landmarkX + 70, 340);
-        g.lineBetween(landmarkX - 70, 340, landmarkX, 285).lineBetween(landmarkX, 285, landmarkX + 70, 340);
-        g.strokeCircle(landmarkX, 365, 28);
+        if (roof.kind === 'moving') {
+          g.fillStyle(0x30263f).fillRoundedRect(roof.x + 2, roof.y + 16, roof.width - 4, 48, 8);
+          for (let w = 14; w < roof.width - 24; w += 34) g.fillStyle(areaColor, .35).fillRect(roof.x + w, roof.y + 25, 23, 19);
+          g.lineStyle(1, areaColor, .25).lineBetween(roof.x - (roof.travel ?? 0), roof.y + 40, roof.x + roof.width + (roof.travel ?? 0), roof.y + 40);
+          g.fillStyle(areaColor, .6).fillRect(roof.x + 10, roof.y + 9, roof.width - 20, 3);
+        }
+        if (roof.kind === 'wall') for (let y = roof.y + 30; y < roof.y + (roof.height ?? 220) - 20; y += 42) {
+          g.lineStyle(2, areaColor, .8).lineBetween(roof.x + 12, y + 8, roof.x + roof.width / 2, y).lineBetween(roof.x + roof.width / 2, y, roof.x + roof.width - 12, y + 8);
+        }
       }
-      const hx = chunk.spec.hazardX;
-      g.fillStyle(0xf0b478, .08).fillEllipse(hx, 582, 100, 38);
-      for (let i = -2; i <= 2; i++) {
-        g.fillStyle(0x311e30).fillTriangle(hx + i * 9 - 5, 590, hx + i * 9, 569, hx + i * 9 + 5, 590);
-        g.lineStyle(2, 0xffad7d).lineBetween(hx + i * 9 - 4, 587, hx + i * 9, 573);
-      }
+      this.drawThreats(g, chunk, time);
       for (const f of chunk.fragments) if (!f.collected) {
         const bob = (this.reduced || this.userReduced) ? 0 : Math.sin(time * .002 + f.x) * 3;
         g.fillStyle(0x7bffde, .055).fillCircle(f.x, f.y + bob, 22);
