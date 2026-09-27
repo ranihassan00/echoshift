@@ -3,18 +3,19 @@
 Last updated: 2026-09-26
 
 ## Working
+- TASK-002 demo provider and standalone Player State Engine implemented with deterministic tests; live Presage remains blocked.
+- State API: submit/getState/subscribe/tick; 60-second normal dwell, 2-second confirmation, 3-second freshness and 5-second loss grace. See frontend/src/state/README.md.
 - Shared frontend types are defined in `frontend/src/shared/contracts.ts`; import paths are documented in `docs/api-contracts.md`.
 - GitHub repository exists.
 - Shared project documentation and architecture are established on the setup branch.
 - Team has decided to build a 2D game instead of a 3D game.
 
 ## In progress
+- TASK-002: live Presage adapter awaits sponsor-approved browser/native bridge, credentials, and payload mapping (frontend/src/presage/README.md).
 - TASK-001: shared project foundation/context.
 
 ## Not started
 - Presage/camera adapter
-- Demo metrics provider
-- Player State Engine
 - 2D game scene and adaptive gameplay
 - Gemini AI Director backend
 - ElevenLabs voice generation
