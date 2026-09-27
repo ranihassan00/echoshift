@@ -1,63 +1,109 @@
-﻿# Relay game slice — TASK-003
+﻿# EchoShift — continuous city run (TASK-003)
 
 ## Play
 
-From `frontend`, run `npm ci`, then `npm run dev`. Arrow keys / A D move,
-Space / Up jumps, R restarts. Click the playfield after choosing a demo state.
-Cross five gaps and jump over the patrol drone to reach the uplink.
-Keyboard controls are required; touch controls are not part of this slice.
+From `frontend`: `npm ci`, then `npm run dev`. The run starts immediately.
+A/D or arrow keys move; hold Space/Up for a full jump, tap for a short hop.
+R restarts. After a fatal fall or losing all three health segments, the final-score
+overlay offers an immediate restart without a page reload.
 
-## Integration for Rani
+The game occupies the viewport. Demo / Settings opens the clearly labelled
+simulated state controls and a reduced-motion/shake option. OS reduced motion is
+also respected. The experience uses keyboard controls and is silent; no audio
+assets, network services or paid asset tools are required.
+
+## Continuous course and movement
+
+The same Phaser scene streams curated 2,160-pixel sections, with three rooftop
+platforms per section. All seams have 90–110 pixel gaps and at most 50 pixel rises.
+A full jump at running speed can cross every seam. Several sections stay active;
+sections more than a section behind the player are removed only when safe. A
+backtracking boundary prevents returning into removed space. At most five sections
+are active in normal traversal.
+
+Districts change every two sections: rainline rooftops, transit spine, foundry,
+archive ruins, reactor garden and machine cathedral. World-anchored structural
+landmarks scroll into view without loading or scene replacement. Cached skyline
+textures provide three parallax layers, with rain, distant traffic, holographic
+signage, low haze, wet roof details, localized lightning and bounded sparks.
+
+Movement: 310 px/s cap, 1,800 px/s² acceleration, 2,300 px/s² braking,
+110 ms coyote time, 140 ms jump buffer and variable jump height. Landing particles,
+segmented armor, visor, scarf and limb movement communicate motion and impact.
+Moving platforms, dash, additional enemies and complex combat are intentionally
+outside this focused version.
+
+## Score and difficulty
+
+- 1 point for each 10 new pixels of maximum forward distance (displayed as 1 m).
+- 100 points per energy fragment, collected only once.
+- 75 points per drone avoided or defeated, awarded only once for either action.
+- 150 points for each completed section, awarded once.
+- No idle-time reward, backward-distance reward or repeat-farming reward.
+
+Difficulty increases every two sections to tier 4, then stays capped. Gaps increase
+from 90 to 110 pixels; drone patrol speed ranges from 60 to 102 px/s including
+state variation. Every section keeps its safe route and recovery spaces.
+
+The security drone uses a 650 ms visible warning, 150 ms short-range attack and
+1,000 ms recovery. Jump over it, wait outside its marked range, or land on top.
+Damage has 1,500 ms invulnerability; falls are fatal. Minor camera shake is optional.
+
+## High scores
+
+`HighScore` in `run.ts` validates and loads `echoshift.high-score.v1` from localStorage.
+It records new records as score increases. Invalid/negative/non-integer/unsafe values
+fall back to zero. Unavailable storage and quota errors leave the run operational,
+with an in-memory session record and a saving-unavailable notice at game over.
+Ordinary restart keeps the record; reload retrieves it. Tests restore prior stored
+scores so verification does not replace the user's record.
+
+## State integration for Rani
 
 `Game` accepts `targetState?: PlayerState`, imported from `src/shared/contracts.ts`.
-Pass a committed state with `<Game targetState={committedState} />` from the
-integration owner’s React shell. Omitting the prop enables clearly labelled
-simulated buttons. Passing `UNKNOWN` is a real neutral fallback and does not
-activate demo mode. No raw metrics or state-engine imports are used.
+Use `<Game targetState={committedState} />`. Omitting the prop activates simulated
+controls. Passing `UNKNOWN` selects the neutral committed fallback, not Demo Mode.
 
-`EchoScene.setTargetState(state)` is the scene boundary. The React wrapper retains
-one scene and forwards prop updates; it also supplies the latest state on scene
-creation so updates before boot are not lost. No 60-second dwell timer is
-implemented here. Provider, AI and voice failures cannot block gameplay.
+`EchoScene.setTargetState(state)` ignores duplicate targets. RGB values and ambient
+activity transition with `Sine.easeInOut` over 1,600 ms, starting from current rendered
+values on interruption. HUD color follows the same interpolated accent. Machinery
+and traffic phase is accumulated continuously rather than recomputed from state,
+so retargeting cannot jump animation phase.
 
-Shared contract shapes, App.tsx, package.json and shared configuration are unchanged.
-The canonical contract was brought in from main, not redefined by this task.
-The existing App preview headings are suppressed by the game UI stylesheet;
-the integration owner can replace those obsolete shell labels later.
+| State | Presentation | Patrol offset |
+| --- | --- | --- |
+| CALM | Deep blue, cyan, gentle activity, circle symbol | +0 px/s |
+| ENGAGED | Cyan/violet, more active machinery, diamond | +5 px/s |
+| HIGH_AROUSAL | Amber/magenta, stronger bounded activity, triangle | +10 px/s |
+| UNKNOWN | Blue-gray, stable fallback, dash and signal-unavailable label | +0 px/s |
 
-## State presentation
+Patrol offsets apply only at endpoints; warning/attack/recovery timing and collision
+geometry are independent of PlayerState. State changes never reset score, health,
+progress or the scene. The game neither consumes raw sensing metrics nor duplicates
+the engine's 60-second dwell timer. No Presage, Gemini, ElevenLabs, API or backend
+internals are imported. Companion text is a bounded local placeholder tied to actual
+introductory obstacles. Future dialogue wiring belongs to Rani.
 
-| State | Palette | Machinery activity | Patrol speed |
-| --- | --- | --- | --- |
-| CALM | Soft teal, deep cool blue | 0.35 | 45 px/s |
-| ENGAGED | Blue highlights | 0.70 | 55 px/s |
-| HIGH_AROUSAL | Warm amber highlights | 1.00 | 65 px/s |
-| UNKNOWN | Neutral slate | 0.20 | 45 px/s |
-
-`profiles.ts` centralizes profiles, geometry and the 1200 ms duration.
-Phaser `Sine.easeInOut` tweens RGB channels and activity. Interrupting a tween
-stops it in place and starts from the currently rendered values. Duplicate targets
-are ignored. Icons, labels, machinery cadence and the drone direction/speed cue
-complement color. Reduced-motion preferences freeze background machinery while
-retaining gradual color fades. Camera, collision geometry and the route stay fixed.
-
-The drone adopts pending speed only when reaching a patrol endpoint. No state
-change teleports it, moves platforms or resets progress. A clear landing zone
-precedes its patrol. Moving platforms were omitted to keep the baseline reliable.
-Movement uses 100 ms coyote time and a 130 ms jump buffer.
+The existing App shell remains intact. Its legacy preview labels are hidden in the
+owned stylesheet; the old HUD export remains as an empty compatibility slot, while
+Game renders the connected overlay HUD. Shared contracts and config files are unchanged.
 
 ## Verification
 
-- `npm run build -- --configLoader runner`: TypeScript + production Vite build.
-  The runner option works around sandbox restrictions on the default config bundler;
-  no shared config was changed. Vite reports its usual large Phaser bundle warning.
-- With `npm run dev` running, open `/src/game/tests/index.html` for the standalone
-  real-Phaser browser checks. This fixture is not imported by the production app.
-- The fixture drives actual keys, gravity and collisions through all four states;
-  tests tween continuity, duplicate states, deferred speed, safe retries, React prop
-  updates, labelled simulation and destruction on unmount.
-- Keep the test tab active until it reports ALL CHECKS PASSED.
+- `npm run build -- --configLoader runner`: TypeScript + production build. The runner
+  option avoids the sandbox's config-bundler filesystem restriction. Vite warns about
+  the Phaser bundle size; no package or shared build configuration was changed.
+- Run `/src/game/tests/index.html` through Vite for real Phaser/React browser checks.
+  The fixture verifies all four states across three sections, capped difficulty,
+  variable jump height, score/no-farming rules, chunk recycling, smooth interrupted
+  state transitions, deferred speed changes, fatal-fall final stats, restart,
+  simulation labelling, the React game-over button and resource cleanup.
+- `/src/game/tests/reload.html` verifies persistence through an actual page reload,
+  then restores the previous high score.
+- The fixture also checks malformed/unavailable storage and 100 section seams.
+- Keep the test tab active until ALL CHECKS PASSED. Test files are not production
+  entry points and require no additional dependencies.
 
-The test fixture is intentionally white-box for transition and patrol assertions;
-it does not replace human playtesting or future live-sensing integration checks.
-No Gemini, ElevenLabs, Presage or paid Game Agent APIs are called.
+Known scope limits: keyboard-only, no live sensing/voice integration, no audio,
+no moving platforms, reused curated geometry, and a large bundled Phaser runtime.
+Future varied section designs must preserve the tested seam and hazard-spacing rules.

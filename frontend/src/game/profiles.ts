@@ -1,13 +1,18 @@
 ﻿import type { PlayerState } from '../shared/contracts';
-export const TRANSITION_MS = 1200;
+
+export const TRANSITION_MS = 1600;
 export const PROFILES = {
-  CALM: { background: 0x102331, accent: 0x83dedb, activity: 0.35, speed: 45, symbol: '○', description: 'Quiet machinery · steady patrol' },
-  ENGAGED: { background: 0x162641, accent: 0x93baff, activity: 0.7, speed: 55, symbol: '◇', description: 'Active machinery · lively patrol' },
-  HIGH_AROUSAL: { background: 0x30232d, accent: 0xffbd88, activity: 1, speed: 65, symbol: '△', description: 'Elevated activity · watch patrol cues' },
-  UNKNOWN: { background: 0x1c2632, accent: 0xb6c6d2, activity: 0.2, speed: 45, symbol: '—', description: 'Sensing unavailable or warming up · steady fallback' },
-} satisfies Record<PlayerState, { background: number; accent: number; activity: number; speed: number; symbol: string; description: string }>;
-export const LEVEL = [
-  { x: 0, y: 470, width: 340 }, { x: 410, y: 420, width: 270 },
-  { x: 750, y: 360, width: 230 }, { x: 1050, y: 420, width: 300 },
-  { x: 1420, y: 360, width: 230 }, { x: 1720, y: 420, width: 480 },
-];
+  CALM: { background: 0x071528, accent: 0x63e6ef, secondary: 0x777bea, activity: 0.35, speed: 0, symbol: '○', description: 'Quiet signal' },
+  ENGAGED: { background: 0x10132c, accent: 0x82eaff, secondary: 0xbf7aff, activity: 0.7, speed: 5, symbol: '◇', description: 'Active signal' },
+  HIGH_AROUSAL: { background: 0x201128, accent: 0xffad88, secondary: 0xf771bd, activity: 1, speed: 10, symbol: '△', description: 'Elevated signal' },
+  UNKNOWN: { background: 0x0c1726, accent: 0xa7c8df, secondary: 0x8998cc, activity: 0.25, speed: 0, symbol: '—', description: 'Signal unavailable' },
+} satisfies Record<PlayerState, { background: number; accent: number; secondary: number; activity: number; speed: number; symbol: string; description: string }>;
+
+export type Presentation = { r: number; g: number; b: number; ar: number; ag: number; ab: number; sr: number; sg: number; sb: number; activity: number };
+export function presentation(state: PlayerState): Presentation {
+  const p = PROFILES[state];
+  return { r: p.background >> 16, g: (p.background >> 8) & 255, b: p.background & 255,
+    ar: p.accent >> 16, ag: (p.accent >> 8) & 255, ab: p.accent & 255,
+    sr: p.secondary >> 16, sg: (p.secondary >> 8) & 255, sb: p.secondary & 255, activity: p.activity };
+}
+export const color = (r: number, g: number, b: number) => (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b);

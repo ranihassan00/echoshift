@@ -32,7 +32,7 @@ Branch: feature/game-ui
 
 Goal: build one polished 2D game experience that visibly reacts to PlayerState and is strong enough for a live judge demo.
 
-Implemented Relay: one complete route, four state profiles, simulated controls, smooth interrupted transitions and endpoint-deferred patrol changes. See `frontend/src/game/README.md` and `frontend/src/game/tests/index.html`. Shared type shapes and Rani-owned modules are unchanged; live-state wiring remains TASK-005.
+Implemented continuous city run: reusable streamed sections, atmospheric parallax art, score and persistent local best, fragments, health, telegraphed drone, instant restart, four simulated state profiles, smooth interrupted transitions and endpoint-deferred patrol changes. See `frontend/src/game/README.md` and `frontend/src/game/tests/index.html`. Shared type shapes and Rani-owned modules are unchanged; live-state wiring remains TASK-005.
 
 Allowed:
 - frontend/src/game/

@@ -1,12 +1,12 @@
 # Current Project State
 
-Last updated: 2026-09-26
+Last updated: 2026-09-27
 
 ## Working
-- TASK-003: Relay platformer with fixed geometry, buffered jumps, patrol drone, exit and retries.
-- All four canonical PlayerState values have simulated controls and 1200 ms eased presentation transitions; drone speed changes wait for patrol endpoints.
+- TASK-003: continuous city run with streamed curated sections, variable-height jumps, health, fragments, score, local high score and instant game-over/restart.
+- All four canonical PlayerState values have simulated controls and 1600 ms eased presentation transitions; drone speed changes wait for patrol endpoints.
 - Game integration entry point: `Game({ targetState })`; see `frontend/src/game/README.md` for Rani's handoff and verification fixture.
-- Real Phaser browser checks verify all-state completion, smooth retargeting, safe speed changes and React cleanup. Production build passes with `--configLoader runner` in the sandbox.
+- Real Phaser/React browser checks cover all-state traversal, capped difficulty, scoring, storage fallback/reload, smooth retargeting, safe speed changes and cleanup. Production build passes with `--configLoader runner` in the sandbox.
 - Shared frontend types are defined in `frontend/src/shared/contracts.ts`; import paths are documented in `docs/api-contracts.md`.
 - GitHub repository exists.
 - Shared project documentation and architecture are established on the setup branch.
